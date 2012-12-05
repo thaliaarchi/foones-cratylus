@@ -223,13 +223,20 @@ def tokenize(s):
         elif s[i] in string.lowercase:
             yield Token('VAR', s[i])
             i += 1
-        elif s[i] in '{':
+        elif s[i] == '{':
             name = ''
             while i < len(s) and s[i] != '}':
                 name += s[i]
                 i += 1
             name += '}'
             i += 1
+            yield Token('VAR', name)
+        elif s[i] in string.uppercase:
+            name = s[i]
+            i += 1
+            while i < len(s) and s[i] in string.lowercase:
+                name += s[i]
+                i += 1
             yield Token('VAR', name)
         else:
             symbols = {
@@ -308,35 +315,76 @@ def parse_polynomial(tokens, i=0):
         i += 1
     return i, res
 
-#def parse_poly(string):
-#    return parse_polynomial(list(tokenize(string)))[1]
+def poly_from_string(string):
+    return parse_polynomial(list(tokenize(string)), 0)
+
+def parse_clause(tokens, i):
+    clause = []
+    while i < len(tokens):
+        i, poly = parse_polynomial(tokens, i)
+        clause.append(poly)
+        if tokens[i].type == 'COMMA':
+            i += 1
+            continue 
+        elif tokens[i].type == 'PERIOD':
+            i += 1
+            break
+        else:
+            raise CratylusException('Parse error: expected "," or "."')
+    return i, clause
 
 def parse_rule(tokens, i):
     i, head = parse_polynomial(tokens, i)
     if tokens[i].type == 'PERIOD':
-        return i + 1, [head]
+        return i + 1, (head, [])
+    elif tokens[i].type == 'THEN':
+        i += 1
+        i, clause = parse_clause(tokens, i)
+        return i, (head, clause)
+    else:
+        raise CratylusException('Expected "=>" or "."')
 
-def parse_program(string):
+def run_goal(rules, goal):
+    p0 = poly_from_constant(0)
+    while True:
+        print goal
+        for head, tail in rules:
+            q, r = goal.div_mod(head)
+            if r == p0:
+                goal = q
+                for p in tail:
+                    goal = goal * p
+                break
+        else:
+            print goal
+            break
+
+def run_program(string):
     tokens = list(tokenize(string))
     rules = []
- 
     i = 0
-    while i < len(tokens):
+    while i < len(tokens) and tokens[i].type != 'EOF':
         if tokens[i].type == 'QUERY':
-            print tokens[i]
+            i += 1
+            i, goals = parse_clause(tokens, i)
+            for goal in goals:
+                run_goal(rules, goal)
         else:
             i, rule = parse_rule(tokens, i)
             rules.append(rule)
-    print rule
 
-def parse_program_from_file(filename):
+def run_program_from_file(filename):
     try:
         f = file(filename, 'r')
     except IOError:
         raise CratylusException('Cannot open file: %s' % (filename,))
     contents = f.read()
     f.close()
-    return parse_program(contents)
+    return run_program(contents)
 
-parse_program_from_file('in.txt')
+run_program_from_file('in.txt')
+
+# Dif X
+# Int X
+# Ev P
 
