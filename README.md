@@ -1,0 +1,4 @@
+cratylus
+========
+
+Polynomial rewriting esolang
