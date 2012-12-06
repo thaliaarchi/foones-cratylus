@@ -19,4 +19,4 @@ Del1     => Mul.
 Erase Y  => Erase.
 Erase.
 
-? Mul X^1 Y^7.
+? Mul X^11 Y^9.

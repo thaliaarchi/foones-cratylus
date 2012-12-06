@@ -24,6 +24,7 @@ PROMPT = 'Cratylus'
 OPTIONS = {
     'verbose': False,
     'script': False,
+    'modulo': 0,
 }
 
 class CratylusException(Exception):
@@ -37,6 +38,18 @@ class CratylusException(Exception):
             return self._msg
         else:
             return 'at %s\n%s' % (self._pos, indent(self._msg))
+
+def is_numeric(x):
+    for c in x:
+        if c not in '0123456789':
+            return False
+    return True
+
+def modulo(x):
+    if OPTIONS['modulo'] == 0:
+        return x
+    else: 
+        return x % OPTIONS['modulo']
 
 def normalize_key(k):
     return tuple(sorted([(v, p) for (v, p) in k if p != 0]))
@@ -77,6 +90,7 @@ class Poly(object):
     def __init__(self, coeffs):
         self._coeffs = {}
         for k, v in coeffs.items():
+            v = modulo(v)
             if v == 0: continue
             nk = normalize_key(k)
             assert nk not in self._coeffs
@@ -96,10 +110,7 @@ class Poly(object):
                 coeffs[k] = coeffs.get(k, 0) + v1 * v2
         return Poly(coeffs)
 
-    def __pow__(self, p):
-        pw = p.as_constant()
-        if pw is None or pw < 0:
-            raise CratylusException('%s ^ %s -- power should be a non-negative constant' % (self, p))
+    def __pow__(self, pw):
         res = poly_from_constant(1)
         acc = self
         while pw > 0:
@@ -332,6 +343,12 @@ def tokenize(s, filename='...'):
 def terminators():
     return ['RPAREN', 'THEN', 'COMMA', 'PERIOD', 'EOF']
 
+def parse_num(tokens, i=0):
+    if tokens[i].type == 'NUM':
+        return i + 1, tokens[i].value
+    else:
+        raise CratylusException('Parse error: expected a number' % (tokens[i],), tokens[i].pos)
+
 def parse_atom(tokens, i=0):
     if i >= len(tokens):
         raise CratylusException('Parse error', tokens[-1].pos)
@@ -354,7 +371,7 @@ def parse_monomial(tokens, i=0):
         i, a = parse_atom(tokens, i)
 
         while i < len(tokens) and tokens[i].type in ['EXPOP']:
-            i, p = parse_atom(tokens, i + 1)
+            i, p = parse_num(tokens, i + 1)
             a = a ** p
 
         if i < len(tokens) and tokens[i].type in ['MULOP']:
@@ -462,7 +479,7 @@ def run_goal(rules, goal):
                     print 40 * '-'
                     print 'Current goal : %s' % (goal,)
                     print 'Applying rule: %s' % (rule,)
-                    print '%s = %s * %s' % (goal, rule.head, q)
+                    print '%s = (%s) * (%s)' % (goal, rule.head, q)
 
                 goal = q
                 for p in rule.clause:
@@ -505,6 +522,14 @@ def load_program(string, filename='...'):
     return rules
 
 def load_program_from_file(filename):
+    if not OPTIONS['script']:
+        sys.stderr.write('! Loading file "%s"\n' % (filename,))
+
+    if filename.endswith('.cr2'):
+        if not OPTIONS['script']:
+            sys.stderr.write('! Coefficients in Z_2.\n')
+        OPTIONS['modulo'] = 2
+
     try:
         f = file(filename, 'r')
     except IOError:
@@ -547,7 +572,6 @@ def cratylus_help():
     print '    exit        quit the Cratylus interpreter'
 
 def toplevel(rules):
-    banner()
     while True:
         goal_string = raw_input('? ')
         if goal_string in ['bye', 'quit', 'exit']:
@@ -564,13 +588,15 @@ def toplevel(rules):
         except KeyboardInterrupt, e:
             pass
 
-def usage():
+def usage(exit=True):
     banner()
     sys.stderr.write('Usage: %s [options] <file>\n' % (sys.argv[0],))
     sys.stderr.write('Options:\n')
-    sys.stderr.write('    -v, --verbose        trace every step\n')
-    sys.stderr.write('    -s, --script         do not start toplevel interaction\n')
-    sys.exit(1)
+    sys.stderr.write('    -v, --verbose          trace every step\n')
+    sys.stderr.write('    -s, --script           do not start toplevel interaction\n')
+    sys.stderr.write('    -b, --binary           coefficients are in Z_2\n')
+    if exit:
+        sys.exit(1)
 
 if __name__ == '__main__':
     args = []
@@ -584,13 +610,22 @@ if __name__ == '__main__':
         elif sys.argv[i] in ['-s', '--script']:
             OPTIONS['script'] = True
             i += 1
+        elif sys.argv[i] in ['-b', '--binary']:
+            OPTIONS['modulo'] = 2
+            i += 1
         else:
             args.append(sys.argv[i])
             i += 1
+
     if len(args) != 1:
-        usage()
+        usage(False)
+        if not OPTIONS['script']:
+            toplevel([])
+        sys.exit(1)
 
     try:
+        if not OPTIONS['script']:
+            banner()
         rules = load_program_from_file(args[0])
         if not OPTIONS['script']:
             toplevel(rules)

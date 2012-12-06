@@ -76,7 +76,7 @@ and numbers. The abstract syntax is given by:
     <poly> ::= <poly> + <poly>
              | <poly> - <poly>
              | <poly> * <poly>
-             | <poly> ^ <poly>
+             | <poly> ^ <num>
 
 The usual precedence rules apply. All operators are left-associative.
 More concretely:
@@ -84,7 +84,7 @@ More concretely:
     <atom> ::= <variable> | <num> | ( <poly> )
 
     <factor> ::= <atom>
-               | <atom> ^ <atom>
+               | <atom> ^ <num>
 
     <monomial> ::= <factor>
                  | <monomial> * <factor>
@@ -98,8 +98,6 @@ More concretely:
 
 Notice there are two equivalent ways of writing
 products: `<poly><poly>` and `<poly> * <poly>`.
-Also, the exponentiation operator expects a
-constant polynomial (of degree 0) on the right side.
 
 Using Cratylus as a basic polynomial normalizer
 -----------------------------------------------
