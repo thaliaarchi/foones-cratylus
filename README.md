@@ -41,6 +41,13 @@ gets translated to an equivalent Cratylus program:
     ...
     bN => aN.
 
+Since FRACTRAN is Turing complete, Cratylus also is.
+
+Moreover, as part of the Cratylus distribution, the script `s2cr.py`
+translates a program in the (theoretical) programming language S, which
+is well-known to be Turing complete, into a Cratylus program.
+See below for details.
+
 Syntax for polynomials
 ----------------------
 
@@ -331,4 +338,99 @@ Toplevel interaction:
 
     ? d x^62 y^11
     q^5r^7
+
+S to Cratylus compiler
+----------------------
+
+As part of the Cratylus distribution, the script `s2cr.py` translates a program in
+the programming language S to Cratylus. The programming language S is introduced
+in M. Davis' *Computability, Complexity, and Languages* to study computability.
+
+A program in S works with an infinite set of variables, which
+hold natural numbers. A program is a list of operations delimited
+by newlines. Labels can be introduced. At the end of the program,
+variables are initialized by declarations of the form `! var value`.
+
+    <program> ::= <instructions> <init>
+
+    <instructions> ::= <EMPTY>
+                     | <label>: <instructions>
+                     | <op> <instructions>
+
+    <op> ::= inc <var>
+           | dec <var>
+           | jmp <label>
+           | jz <var> <label>
+           | jnz <var> <label>
+
+	<init> ::= <EMPTY>
+              | ! <var> <num> <init>
+
+For instance, the following S program calculates the product of
+`X` and `Y`, with input `X = 11` and `Y = 9`:
+
+	mult:
+		jz X mult_end
+
+		# Loop to copy Y to Y1 and Z
+		copy:
+			jz Y copy_end
+			dec Y
+			inc Y1
+			inc Z
+			jmp copy
+		copy_end:
+
+		# Loop to rename Y1 to Y 
+		rename:
+			jz Y1 rename_end
+			dec Y1
+			inc Y
+			jmp rename
+		rename_end:
+
+		dec X
+		jmp mult
+	mult_end:
+
+	# Loop to erase all copies of Y
+	erase:
+		dec Y
+		jnz Y erase
+
+	# Initial values    
+
+	! X 11
+	! Y 9
+
+After translation with `s2cr.py`, we get the following Cratylus program: 
+
+	{$0}{X} => {$1}{X}.
+	{$0} => {$12}.
+	{$1}{Y} => {$2}{Y}.
+	{$1} => {$6}.
+	{$2}{Y} => {$3}.
+	{$2} => {$3}.
+	{$3} => {$4}{Y1}.
+	{$4} => {$5}{Z}.
+	{$5} => {$1}.
+	{$6}{Y1} => {$7}{Y1}.
+	{$6} => {$10}.
+	{$7}{Y1} => {$8}.
+	{$7} => {$8}.
+	{$8} => {$9}{Y}.
+	{$9} => {$6}.
+	{$10}{X} => {$11}.
+	{$10} => {$11}.
+	{$11} => {$0}.
+	{$12}{Y} => {$13}.
+	{$12} => {$13}.
+	{$13}{Y} => {$12}{Y}.
+	{$13} => {$14}.
+	{$14}.
+	? {$0}{X}^11{Y}^9.
+
+When run, the answer is:
+
+	{Z}^99
 
