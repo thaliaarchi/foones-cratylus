@@ -1,8 +1,25 @@
 #!/usr/bin/python
+import sys
 import string
+import readline
+
+PROMPT = 'Cratylus'
+OPTIONS = {
+    'verbose': False,
+    'script': False,
+}
 
 class CratylusException(Exception):
-    pass
+
+    def __init__(self, msg, pos=None):
+        self._msg = msg
+        self._pos = pos
+
+    def __str__(self):
+        if self._pos == None:
+            return self._msg
+        else:
+            return 'at %s\n%s' % (self._pos, indent(self._msg))
 
 def normalize_key(k):
     return tuple(sorted([(v, p) for (v, p) in k if p != 0]))
@@ -190,16 +207,48 @@ class Poly(object):
         else:
             return ''.join(res)
 
-class Token(object):
+def indent(text):
+    return '\n'.join(['    ' + t for t in text.split('\n')])
 
-    def __init__(self, type, value):
-        self.type = type
-        self.value = value
+class Position(object): 
+
+    def __init__(self, filename, string, begin, end):
+        self._filename = filename
+        self._string = string
+        self._begin = begin
+        self._end = end
+
+    def line(self):
+        line = 1
+        chunks = self._string.split('\n')
+        rd = 0
+        for c in chunks:
+            rd += len(c) + 1
+            if rd >= self._begin:
+                break
+            line += 1
+        return line
+
+    def fragment(self):
+        line = self.line() - 1
+        chunks = self._string.split('\n')
+        lines = chunks[max(0, line - 1):min(len(chunks), line + 1)]
+        return '\n'.join(lines)
 
     def __repr__(self):
-        return '%s:%s' % (self.type, self.value)
+        return '\'%s\', line %s:\n%s\n' % (self._filename, self.line(), indent(self.fragment()))
 
-def tokenize(s):
+class Token(object):
+
+    def __init__(self, type, value, position):
+        self.type = type
+        self.value = value
+        self.pos = position
+
+    def __repr__(self):
+        return '%s "%s"' % (self.type, self.value)
+
+def tokenize(s, filename='...'):
     i = 0
     while i < len(s):
 
@@ -215,29 +264,32 @@ def tokenize(s):
             break
 
         if s[i] in string.digits:
+            b = i
             num = ''
             while i < len(s) and s[i] in string.digits: 
                 num += s[i]
                 i += 1
-            yield Token('NUM', int(num))
+            yield Token('NUM', int(num), Position(filename, s, b, i))
         elif s[i] in string.lowercase:
-            yield Token('VAR', s[i])
+            yield Token('VAR', s[i], Position(filename, s, i, i + 1))
             i += 1
         elif s[i] == '{':
+            b = i
             name = ''
             while i < len(s) and s[i] != '}':
                 name += s[i]
                 i += 1
             name += '}'
             i += 1
-            yield Token('VAR', name)
+            yield Token('VAR', name, Position(filename, s, b, i))
         elif s[i] in string.uppercase:
+            b = i
             name = s[i]
             i += 1
-            while i < len(s) and s[i] in string.lowercase:
+            while i < len(s) and s[i] in '_' + string.lowercase + string.digits:
                 name += s[i]
                 i += 1
-            yield Token('VAR', name)
+            yield Token('VAR', name, Position(filename, s, b, i))
         else:
             symbols = {
                 '+': 'ADDOP',
@@ -253,19 +305,19 @@ def tokenize(s):
             }
             for symbol, symbol_type in symbols.items():
                 if i + len(symbol) <= len(s) and s[i:i + len(symbol)] == symbol:
-                    yield Token(symbol_type, symbol)
+                    yield Token(symbol_type, symbol, Position(filename, s, i, i + len(symbol)))
                     i += len(symbol)
                     break
             else:
-                raise CratylusException('Unrecognized symbol: %s' % (s[i],))
-    yield Token('EOF', '')
+                raise CratylusException('Unrecognized symbol: %s' % (s[i],), Position(filename, s, i, i))
+    yield Token('EOF', '', Position(filename, s, i, i))
 
 def terminators():
     return ['RPAREN', 'THEN', 'COMMA', 'PERIOD', 'EOF']
 
 def parse_atom(tokens, i=0):
     if i >= len(tokens):
-        raise CratylusException('Parse error')
+        raise CratylusException('Parse error', tokens[-1].pos)
 
     if tokens[i].type == 'VAR':
         return i + 1, poly_from_var(tokens[i].value)
@@ -274,10 +326,10 @@ def parse_atom(tokens, i=0):
     elif tokens[i].type == 'LPAREN':
         j, res = parse_polynomial(tokens, i + 1)
         if tokens[j].type != 'RPAREN':
-            raise CratylusException('Unbalanced paren')
+            raise CratylusException('Unbalanced paren', tokens[j].pos)
         return j + 1, res
     else:
-        raise CratylusException('Parse error: unexpected token found: %s' % (tokens[i],))
+        raise CratylusException('Parse error: unexpected token found: %s' % (tokens[i],), tokens[i].pos)
 
 def parse_monomial(tokens, i=0):
     res = poly_from_constant(1)
@@ -310,13 +362,13 @@ def parse_polynomial(tokens, i=0):
         if tokens[i].type in ['RPAREN'] + terminators():
             break
         if tokens[i].type not in 'ADDOP':
-            raise CratylusException('Expected an additive operator (+, -)')
+            raise CratylusException('Expected an additive operator (+, -)', tokens[i].pos)
         sign = tokens[i].value
         i += 1
     return i, res
 
 def poly_from_string(string):
-    return parse_polynomial(list(tokenize(string)), 0)
+    return parse_polynomial(list(tokenize(string)), 0)[1]
 
 def parse_clause(tokens, i):
     clause = []
@@ -330,37 +382,62 @@ def parse_clause(tokens, i):
             i += 1
             break
         else:
-            raise CratylusException('Parse error: expected "," or "."')
+            raise CratylusException('Parse error: expected "," or "."', tokens[i].pos)
     return i, clause
+
+class Rule(object):
+
+    def __init__(self, head, clause=[]):
+        self.head = head
+        self.clause = clause
+
+    def __repr__(self):
+        if self.clause == []:
+            return '%s' % (self.head,)
+        else:
+            return '%s => %s' % (self.head, ', '.join([repr(x) for x in self.clause]))
 
 def parse_rule(tokens, i):
     i, head = parse_polynomial(tokens, i)
     if tokens[i].type == 'PERIOD':
-        return i + 1, (head, [])
+        return i + 1, Rule(head)
     elif tokens[i].type == 'THEN':
         i += 1
         i, clause = parse_clause(tokens, i)
-        return i, (head, clause)
+        return i, Rule(head, clause)
     else:
-        raise CratylusException('Expected "=>" or "."')
+        raise CratylusException('Expected "=>" or "."', tokens[i].pos)
 
 def run_goal(rules, goal):
     p0 = poly_from_constant(0)
     while True:
-        print goal
-        for head, tail in rules:
-            q, r = goal.div_mod(head)
+        for rule in rules:
+            q, r = goal.div_mod(rule.head)
             if r == p0:
+
+                if OPTIONS['verbose']:
+                    print 40 * '-'
+                    print 'Current goal : %s' % (goal,)
+                    print 'Applying rule: %s' % (rule,)
+                    print '%s = %s * %s' % (goal, rule.head, q)
+
                 goal = q
-                for p in tail:
+                for p in rule.clause:
                     goal = goal * p
+
+                if OPTIONS['verbose']:
+                    print 'New goal     : %s' % (goal,)
+                    print 40 * '-'
+
                 break
         else:
+            if OPTIONS['verbose']:
+                print 'Final result:'
             print goal
             break
 
-def run_program(string):
-    tokens = list(tokenize(string))
+def load_program(string, filename='...'):
+    tokens = list(tokenize(string, filename))
     rules = []
     i = 0
     while i < len(tokens) and tokens[i].type != 'EOF':
@@ -372,19 +449,99 @@ def run_program(string):
         else:
             i, rule = parse_rule(tokens, i)
             rules.append(rule)
+    return rules
 
-def run_program_from_file(filename):
+def load_program_from_file(filename):
     try:
         f = file(filename, 'r')
     except IOError:
-        raise CratylusException('Cannot open file: %s' % (filename,))
+        raise CratylusException('Cannot open file \'%s\'' % (filename,))
     contents = f.read()
     f.close()
-    return run_program(contents)
+    return load_program(contents, filename)
 
-run_program_from_file('in.txt')
+def banner():
+    sys.stderr.write(r"""
+  ____           _         _           
+ / ___|_ __ __ _| |_ _   _| |_   _ ___ 
+| |   | '__/ _` | __| | | | | | | / __|
+| |___| | | (_| | |_| |_| | | |_| \__ \
+ \____|_|  \__,_|\__|\__, |_|\__,_|___/
+                     |___/             
 
-# Dif X
-# Int X
-# Ev P
+Copyright (c) 2012 - Pablo Barenbaum <foones@gmail.com>
+""")
+
+def cratylus_help():
+    print '    Cratylus is an esolang based on polynomial rewriting.'
+    print
+    print '    Its terms are multivariate polynomials with integer coefficients:'
+    print '        42'
+    print '        x'
+    print '        2x + xy + 2y'
+    print '        3x^2 - 1'
+    print
+    print '    A Cratylus program is a sequence of rewriting rules:'
+    print '        2x => x.'
+    print '        xy => x.'
+    print
+    print '    Once loaded, the prompt asks for an input polynomial and'
+    print '    in case the process terminates, it outputs the normal form:'
+    print '        ? 12xy^9'
+    print '        3x'
+    print
+    print '    help        displays this message'
+    print '    exit        quit the Cratylus interpreter'
+
+def toplevel(rules):
+    banner()
+    while True:
+        goal_string = raw_input('? ')
+        if goal_string in ['bye', 'quit', 'exit']:
+            print 'Bye.'
+            break
+        elif goal_string in ['help']:
+            cratylus_help()
+            continue
+        try:
+            goal = poly_from_string(goal_string)
+            run_goal(rules, goal)
+        except CratylusException, e:
+            print e
+        except KeyboardInterrupt, e:
+            pass
+
+def usage():
+    banner()
+    sys.stderr.write('Usage: %s [options] <file>\n' % (sys.argv[0],))
+    sys.stderr.write('Options:\n')
+    sys.stderr.write('    -v, --verbose        trace every step\n')
+    sys.stderr.write('    -s, --script         do not start toplevel interaction\n')
+    sys.exit(1)
+
+if __name__ == '__main__':
+    args = []
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i] in ['-h', '--help']:
+            usage()
+        elif sys.argv[i] in ['-v', '--verbose']:
+            OPTIONS['verbose'] = True
+            i += 1
+        elif sys.argv[i] in ['-s', '--script']:
+            OPTIONS['script'] = True
+            i += 1
+        else:
+            args.append(sys.argv[i])
+            i += 1
+    if len(args) != 1:
+        usage()
+
+    try:
+        rules = load_program_from_file(args[0])
+        if not OPTIONS['script']:
+            toplevel(rules)
+
+    except CratylusException, e:
+        sys.stderr.write('%s: %s\n' % (PROMPT, e,))
 
