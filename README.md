@@ -310,3 +310,25 @@ Toplevel interaction:
     ? DivMod X^62 Y^11           # 62 = 5 * 11 + 7
     Q^5R^7
 
+An equivalent obfuscated version:
+
+    dxy => cxy.
+    d => e.
+    cy => abc.
+    c => s.
+    bsx => s.
+    bs => bl.
+    s => nq.
+    an => ny.
+    n => d.
+    abl => l.
+    al => lr.
+    l.
+    ey => e.
+    e.
+
+Toplevel interaction:
+
+    ? d x^62 y^11
+    q^5r^7
+

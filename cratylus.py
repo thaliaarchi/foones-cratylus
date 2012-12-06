@@ -414,6 +414,28 @@ class Rule(object):
         else:
             return '%s => %s' % (self.head, ', '.join([repr(x) for x in self.clause]))
 
+    def is_goal(self):
+        return False
+
+class Goal(object):
+
+    def __init__(self, clause=[]):
+        self.clause = clause
+
+    def __repr__(self):
+        return '? %s' % (', '.join([repr(x) for x in self.clause]),)
+
+    def is_goal(self):
+        return True
+
+class Program(object):
+
+    def __init__(self, rules=[]):
+        self.rules = rules
+
+    def __repr__(self):
+        return '\n'.join(['%s.' % (x,) for x in self.rules])
+
 def parse_rule(tokens, i):
     i, head = parse_polynomial(tokens, i)
     if tokens[i].type == 'PERIOD':
@@ -424,6 +446,10 @@ def parse_rule(tokens, i):
         return i, Rule(head, clause)
     else:
         raise CratylusException('Expected "=>" or "."', tokens[i].pos)
+
+def parse_goal(tokens, i):
+    i, clause = parse_clause(tokens, i)
+    return i, Goal(clause)
 
 def run_goal(rules, goal):
     p0 = poly_from_constant(0)
@@ -453,19 +479,29 @@ def run_goal(rules, goal):
             print goal
             break
 
-def load_program(string, filename='...'):
+def parse_program(string, filename='...'):
     tokens = list(tokenize(string, filename))
     rules = []
     i = 0
     while i < len(tokens) and tokens[i].type != 'EOF':
         if tokens[i].type == 'QUERY':
             i += 1
-            i, goals = parse_clause(tokens, i)
-            for goal in goals:
-                run_goal(rules, goal)
+            i, goal = parse_goal(tokens, i)
+            rules.append(goal)
         else:
             i, rule = parse_rule(tokens, i)
             rules.append(rule)
+    return Program(rules)
+
+def load_program(string, filename='...'):
+    program = parse_program(string, filename='...')
+    rules = []
+    for p in program.rules:
+        if p.is_goal():
+            for goal in p.clause:
+                run_goal(rules, goal)
+        else:
+            rules.append(p)
     return rules
 
 def load_program_from_file(filename):
