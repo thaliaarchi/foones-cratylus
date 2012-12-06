@@ -280,3 +280,33 @@ Toplevel interaction:
     ? Mul X^10 Y^9
     Z^90
 
+Example 5: quotient and remainder
+---------------------------------
+
+Quotient and remainder algorithm:
+
+    DivMod X Y => Copy X Y.
+    DivMod => End.
+
+    Copy Y => Copy Y1 Y2.
+    Copy => Sub.
+
+    Sub X Y2 => Sub.
+    Sub Y2 => Rem Y2.
+    Sub => Continue Q.
+
+    Continue Y1 => Continue Y.
+    Continue => DivMod.
+
+    Rem Y1 Y2 => Rem.
+    Rem Y1 => Rem R.
+    Rem.
+
+    End Y => End.
+    End.
+
+Toplevel interaction:
+
+    ? DivMod X^62 Y^11           # 62 = 5 * 11 + 7
+    Q^5R^7
+
