@@ -41,8 +41,8 @@ gets translated to an equivalent Cratylus program:
     ...
     bN => aN.
 
-Syntax
-------
+Syntax for polynomials
+----------------------
 
 Multivariate polynomials are formed by operating with variables and 
 positive integers.
@@ -99,26 +99,184 @@ Using Cratylus as a basic polynomial normalizer
 
 Invoke Cratylus with an empty program (no rewriting rules):
 
-	  ____           _         _           
-	 / ___|_ __ __ _| |_ _   _| |_   _ ___ 
-	| |   | '__/ _` | __| | | | | | | / __|
-	| |___| | | (_| | |_| |_| | | |_| \__ \
-	 \____|_|  \__,_|\__|\__, |_|\__,_|___/
-						 |___/             
+    $ python cratylus.py empty_file
 
-	Copyright (c) 2012 - Pablo Barenbaum <foones@gmail.com>
-	? 1
-	1
-	? x
-	x
+      ____           _         _           
+     / ___|_ __ __ _| |_ _   _| |_   _ ___ 
+    | |   | '__/ _` | __| | | | | | | / __|
+    | |___| | | (_| | |_| |_| | | |_| \__ \
+     \____|_|  \__,_|\__|\__, |_|\__,_|___/
+                         |___/             
+
+    Copyright (c) 2012 - Pablo Barenbaum <foones@gmail.com>
+    ? 42
+    42
+    ? x
+    x
     ? abracadabra
     a^5b^2cdr^2
-	? x^2 - 1
-	x^2 - 1
+    ? x^2 - 1
+    x^2 - 1
     ? (x + y)(x - y)
     x^2 - y^2
-	? (Foo + Bar)^2
-	Bar^2 + 2BarFoo + Foo^2
-	? ({x}-{y}){x}
-	{x}^2 - {x}{y}
+    ? (Foo + Bar)^2
+    Bar^2 + 2BarFoo + Foo^2
+    ? -({x}-{y}){x}
+    -{x}^2 + {x}{y}
+
+Syntax for programs
+-------------------
+
+A program is just a list of rules. Rules of the form
+`p => 1.` can be abbreviated as `p.`. Additionally, a
+Cratylus script can contain goals which are to be solved
+as soon as the program is loaded.
+
+    <program> ::= <EMPTY>
+                | <program> <rule>
+                | <program> <goal>
+
+    <rule> ::= <poly> .
+             | <poly> => <poly> .
+
+    <goal> ::= ? <poly> .
+
+Example 1: addition
+-------------------
+
+This example is used to model addition.
+A polynomial `a x^n y^m` is rewritten to a polynomial `z^(n + m)`.
+That is, the exponents of the variables `x` and `y` are added
+resulting in the corresponding exponent of `z`.
+When the following program is loaded:
+
+    ax => az.
+    ay => az.
+    a => 1.
+
+    ? a x^3 y^2.
+
+Final result:
+
+    z^5 
+
+When the `-v` command line option is used, Cratylus traces the steps of the reduction. 
+
+    ----------------------------------------
+    Current goal : ax^3y^2
+    Applying rule: ax => az
+    ax^3y^2 = ax * x^2y^2
+    New goal     : ax^2y^2z
+    ----------------------------------------
+    ----------------------------------------
+    Current goal : ax^2y^2z
+    Applying rule: ax => az
+    ax^2y^2z = ax * xy^2z
+    New goal     : axy^2z^2
+    ----------------------------------------
+    ----------------------------------------
+    Current goal : axy^2z^2
+    Applying rule: ax => az
+    axy^2z^2 = ax * y^2z^2
+    New goal     : ay^2z^3
+    ----------------------------------------
+    ----------------------------------------
+    Current goal : ay^2z^3
+    Applying rule: ay => az
+    ay^2z^3 = ay * yz^3
+    New goal     : ayz^4
+    ----------------------------------------
+    ----------------------------------------
+    Current goal : ayz^4
+    Applying rule: ay => az
+    ayz^4 = ay * z^4
+    New goal     : az^5
+    ----------------------------------------
+    ----------------------------------------
+    Current goal : az^5
+    Applying rule: a => 1
+    az^5 = a * z^5
+    New goal     : z^5
+    ----------------------------------------
+    Final result:
+    z^5
+
+Rewriting rewriting
+-------------------
+
+A different way of presenting the above rules:
+
+    Add X => Add Z.
+    Add Y => Add Z.
+    Add.
+
+Toplevel interaction:
+
+    ? Add X^9 Y^7
+    Z^16
+
+One could question why define addition in such a convoluted way,
+given that the interpreter itself is a polynomial calculator
+(which was already able to add constants).
+
+The key aspect here is that we are representing information,
+and manipulating a representation. The difference is that this way
+of doing things "scales", in the sense that allows us to carry
+out many other processes.
+
+As in FRACTRAN, each variable can be thought as a register, and
+rewriting rules can be thought as simple incrementing / decrementing
+operations on exponents.
+
+Example 2: erasing a variable
+-----------------------------
+
+The following operation can be used to remove all occurrences of X:
+
+    Erase X => Erase.
+    Erase.
+
+Toplevel interaction:
+
+    ? Erase X^9 Y^7
+    Y^7
+
+Example 3: copying a variable
+-----------------------------
+
+This operation creates two copies of X:
+
+    Copy X => Copy Y Z.
+    Copy.
+
+Toplevel interaction:
+
+    ? Copy X^9
+    Y^9Z^9
+
+Example 4: multiplication
+-------------------------
+
+The combination of these ideas allow us to write a procedure
+that does multiplication:
+
+    Mul X Y => Copy X Y.
+    Mul => Erase.
+
+    Copy Y => Copy Y1 Z.
+    Copy   => Rename.
+
+    Rename Y1 => Rename Y.
+    Rename    => Del1.
+
+    Del1 X   => Mul.
+    Del1     => Mul.
+
+    Erase Y  => Erase.
+    Erase.
+
+Toplevel interaction:
+
+    ? Mul X^10 Y^9
+    Z^90
 
