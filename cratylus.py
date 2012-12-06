@@ -83,6 +83,14 @@ def poly_from_constant(k):
 def poly_from_var(var, power=1):
     return Poly({((var, power),): 1})
 
+def poly_from_coeffs(coeffs, var='x'):
+    dic = {}
+    power = 0
+    for c in reversed(coeffs):
+        dic[((var, power),)] = c
+        power += 1
+    return Poly(dic)
+
 class Poly(object):
 
     # coeffs is a mapping
@@ -318,6 +326,17 @@ def tokenize(s, filename='...'):
                 name += s[i]
                 i += 1
             yield Token('VAR', name, Position(filename, s, b, i))
+        elif OPTIONS['modulo'] == 2 and s[i] == '|':
+            b = i
+            coeffs = []
+            i += 1
+            while i < len(s) and s[i] in '01':
+                coeffs.append(int(s[i]))
+                i += 1
+            if i >= len(s) or s[i] != '|':
+                raise CratylusException('Expected "|"', Position(filename, s, b, i))
+            i += 1
+            yield Token('POLY', poly_from_coeffs(coeffs), Position(filename, s, b, i))
         else:
             symbols = {
                 '+': 'ADDOP',
@@ -357,11 +376,13 @@ def parse_atom(tokens, i=0):
         return i + 1, poly_from_var(tokens[i].value)
     elif tokens[i].type == 'NUM':
         return i + 1, poly_from_constant(tokens[i].value)
+    elif tokens[i].type == 'POLY':
+        return i + 1, tokens[i].value
     elif tokens[i].type == 'LPAREN':
         j, res = parse_polynomial(tokens, i + 1)
         if tokens[j].type != 'RPAREN':
             raise CratylusException('Unbalanced paren', tokens[j].pos)
-        return j + 1, res
+        return j + 1, res 
     else:
         raise CratylusException('Parse error: unexpected token found: %s' % (tokens[i],), tokens[i].pos)
 
