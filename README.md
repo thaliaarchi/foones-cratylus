@@ -432,3 +432,112 @@ When run, the answer is:
 
 	{Z}^99
 
+Cratylus simplifier
+-------------------
+
+Also part of the Cratylus distribution is the script `simp_cr.py` which
+normalizes Cratylus programs.
+
+Notice that most of the Cratylus programs above, including all the possible
+outputs of `s2cr.py`, are written in *monomial form*.
+That is, all the polynomials that appear in the source program are monomials
+with leading coefficient equal to 1.
+
+It is easy to see that a program in monomial form can be translated to an
+equivalent FRACTRAN program, if the set of variables that occur in the
+source program is put in 1-1 correspondence with an arbitrary set of primes.
+(More generally, a program in monomial form can be translated to an
+equivalent program if the set of variables is put in 1-1 correspondence
+with a set of different irreducible elements in a unique factorization domain).
+
+Given a Cratylus program in monomial form, `simp_cr.py -f file.cr` translates
+it to an equivalent FRACTRAN program.
+
+For instance, as we saw before, the S program which calculates the product
+of `X` and `Y` gave output to the following Cratylus program:
+
+	{$0}{X} => {$1}{X}.
+	{$0} => {$12}.
+	{$1}{Y} => {$2}{Y}.
+	{$1} => {$6}.
+	{$2}{Y} => {$3}.
+	{$2} => {$3}.
+	{$3} => {$4}{Y1}.
+	{$4} => {$5}{Z}.
+	{$5} => {$1}.
+	{$6}{Y1} => {$7}{Y1}.
+	{$6} => {$10}.
+	{$7}{Y1} => {$8}.
+	{$7} => {$8}.
+	{$8} => {$9}{Y}.
+	{$9} => {$6}.
+	{$10}{X} => {$11}.
+	{$10} => {$11}.
+	{$11} => {$0}.
+	{$12}{Y} => {$13}.
+	{$12} => {$13}.
+	{$13}{Y} => {$12}{Y}.
+	{$13} => {$14}.
+	{$14}.
+
+	? {$0}{X}^11{Y}^9.
+
+The output of `simp_cr.py -f` in this case is:
+
+	# {$0} --> 17
+	# {$10} --> 37
+	# {$11} --> 29
+	# {$12} --> 11
+	# {$13} --> 19
+	# {$14} --> 59
+	# {$1} --> 13
+	# {$2} --> 43
+	# {$3} --> 41
+	# {$4} --> 61
+	# {$5} --> 47
+	# {$6} --> 3
+	# {$7} --> 23
+	# {$8} --> 31
+	# {$9} --> 53
+	# {X} --> 5
+	# {Y1} --> 7
+	# {Y} --> 2
+	# {Z} --> 67
+
+	85 => 65.
+	17 => 11.
+	26 => 86.
+	13 => 3.
+	86 => 41.
+	43 => 41.
+	41 => 427.
+	61 => 3149.
+	47 => 13.
+	21 => 161.
+	3 => 37.
+	161 => 31.
+	23 => 31.
+	31 => 106.
+	53 => 3.
+	185 => 29.
+	37 => 29.
+	29 => 17.
+	22 => 19.
+	11 => 19.
+	38 => 22.
+	19 => 59.
+	59.
+
+	? 425000000000.
+
+The comments indicate the prime that corresponds to each variable in the
+original source program.
+Notice that the query `425000000000` is equivalent to
+`17 * 5^11 * 2^9`. That is, we are asking for the product of
+`11` and `9`. The answer will be given as the exponent of
+`67`. Indeed we get:
+
+    6045127530961181628652411227196693490382260383969108811846856679868932815922570165203117478978324258618429876174558448218719550835202670830699753771294118292547613370699765040813403
+
+which is exactly `67^99`.
+
