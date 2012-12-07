@@ -76,6 +76,8 @@ and numbers. The abstract syntax is given by:
     <poly> ::= <poly> + <poly>
              | <poly> - <poly>
              | <poly> * <poly>
+             | <poly> / <poly>
+             | <poly> % <poly>
              | <poly> ^ <num>
 
 The usual precedence rules apply. All operators are left-associative.
@@ -83,21 +85,28 @@ More concretely:
 
     <atom> ::= <variable> | <num> | ( <poly> )
 
-    <factor> ::= <atom>
-               | <atom> ^ <num>
+    <expatom> ::= <expatom>
+                | <expatom> ^ <num>
 
-    <monomial> ::= <factor>
-                 | <monomial> * <factor>
-                 | <monomial> <factor>
+    <factor> ::= <expatom>
+               | <factor> <expatom>
 
-    <poly> ::= <monomial>
-             | + <monomial>
-             | - <monomial>
-             | <poly> + <monomial>
-             | <poly> - <monomial>
+    <term> ::= <factor>
+             | <term> * <factor>
+             | <term> / <factor>
+             | <term> % <factor>
 
-Notice there are two equivalent ways of writing
-products: `<poly><poly>` and `<poly> * <poly>`.
+    <poly> ::= <term>
+             | + <term>
+             | - <term>
+             | <poly> + <term>
+             | <poly> - <term>
+
+Notice there are two ways of writing products:
+`<poly><poly>` and `<poly> * <poly>`. The former
+has stronger precedence, so:
+`10x / 2x = (10 * x) / (2 * x)` and
+`10x / 2*x = ((10 * x) / 2) * x`.
 
 Using Cratylus as a basic polynomial normalizer
 -----------------------------------------------
@@ -361,76 +370,76 @@ variables are initialized by declarations of the form `! var value`.
            | jz <var> <label>
            | jnz <var> <label>
 
-	<init> ::= <EMPTY>
+    <init> ::= <EMPTY>
               | ! <var> <num> <init>
 
 For instance, the following S program calculates the product of
 `X` and `Y`, with input `X = 11` and `Y = 9`:
 
-	mult:
-		jz X mult_end
+    mult:
+        jz X mult_end
 
-		# Loop to copy Y to Y1 and Z
-		copy:
-			jz Y copy_end
-			dec Y
-			inc Y1
-			inc Z
-			jmp copy
-		copy_end:
+        # Loop to copy Y to Y1 and Z
+        copy:
+            jz Y copy_end
+            dec Y
+            inc Y1
+            inc Z
+            jmp copy
+        copy_end:
 
-		# Loop to rename Y1 to Y 
-		rename:
-			jz Y1 rename_end
-			dec Y1
-			inc Y
-			jmp rename
-		rename_end:
+        # Loop to rename Y1 to Y 
+        rename:
+            jz Y1 rename_end
+            dec Y1
+            inc Y
+            jmp rename
+        rename_end:
 
-		dec X
-		jmp mult
-	mult_end:
+        dec X
+        jmp mult
+    mult_end:
 
-	# Loop to erase all copies of Y
-	erase:
-		dec Y
-		jnz Y erase
+    # Loop to erase all copies of Y
+    erase:
+        dec Y
+        jnz Y erase
 
-	# Initial values    
+    # Initial values    
 
-	! X 11
-	! Y 9
+    ! X 11
+    ! Y 9
 
 After translation with `s2cr.py`, we get the following Cratylus program: 
 
-	{$0}{X} => {$1}{X}.
-	{$0} => {$12}.
-	{$1}{Y} => {$2}{Y}.
-	{$1} => {$6}.
-	{$2}{Y} => {$3}.
-	{$2} => {$3}.
-	{$3} => {$4}{Y1}.
-	{$4} => {$5}{Z}.
-	{$5} => {$1}.
-	{$6}{Y1} => {$7}{Y1}.
-	{$6} => {$10}.
-	{$7}{Y1} => {$8}.
-	{$7} => {$8}.
-	{$8} => {$9}{Y}.
-	{$9} => {$6}.
-	{$10}{X} => {$11}.
-	{$10} => {$11}.
-	{$11} => {$0}.
-	{$12}{Y} => {$13}.
-	{$12} => {$13}.
-	{$13}{Y} => {$12}{Y}.
-	{$13} => {$14}.
-	{$14}.
-	? {$0}{X}^11{Y}^9.
+    {$0}{X} => {$1}{X}.
+    {$0} => {$12}.
+    {$1}{Y} => {$2}{Y}.
+    {$1} => {$6}.
+    {$2}{Y} => {$3}.
+    {$2} => {$3}.
+    {$3} => {$4}{Y1}.
+    {$4} => {$5}{Z}.
+    {$5} => {$1}.
+    {$6}{Y1} => {$7}{Y1}.
+    {$6} => {$10}.
+    {$7}{Y1} => {$8}.
+    {$7} => {$8}.
+    {$8} => {$9}{Y}.
+    {$9} => {$6}.
+    {$10}{X} => {$11}.
+    {$10} => {$11}.
+    {$11} => {$0}.
+    {$12}{Y} => {$13}.
+    {$12} => {$13}.
+    {$13}{Y} => {$12}{Y}.
+    {$13} => {$14}.
+    {$14}.
+    ? {$0}{X}^11{Y}^9.
 
 When run, the answer is:
 
-	{Z}^99
+    {Z}^99
 
 Cratylus simplifier
 -------------------
@@ -456,79 +465,79 @@ it to an equivalent FRACTRAN program.
 For instance, as we saw before, the S program which calculates the product
 of `X` and `Y` gave output to the following Cratylus program:
 
-	{$0}{X} => {$1}{X}.
-	{$0} => {$12}.
-	{$1}{Y} => {$2}{Y}.
-	{$1} => {$6}.
-	{$2}{Y} => {$3}.
-	{$2} => {$3}.
-	{$3} => {$4}{Y1}.
-	{$4} => {$5}{Z}.
-	{$5} => {$1}.
-	{$6}{Y1} => {$7}{Y1}.
-	{$6} => {$10}.
-	{$7}{Y1} => {$8}.
-	{$7} => {$8}.
-	{$8} => {$9}{Y}.
-	{$9} => {$6}.
-	{$10}{X} => {$11}.
-	{$10} => {$11}.
-	{$11} => {$0}.
-	{$12}{Y} => {$13}.
-	{$12} => {$13}.
-	{$13}{Y} => {$12}{Y}.
-	{$13} => {$14}.
-	{$14}.
+    {$0}{X} => {$1}{X}.
+    {$0} => {$12}.
+    {$1}{Y} => {$2}{Y}.
+    {$1} => {$6}.
+    {$2}{Y} => {$3}.
+    {$2} => {$3}.
+    {$3} => {$4}{Y1}.
+    {$4} => {$5}{Z}.
+    {$5} => {$1}.
+    {$6}{Y1} => {$7}{Y1}.
+    {$6} => {$10}.
+    {$7}{Y1} => {$8}.
+    {$7} => {$8}.
+    {$8} => {$9}{Y}.
+    {$9} => {$6}.
+    {$10}{X} => {$11}.
+    {$10} => {$11}.
+    {$11} => {$0}.
+    {$12}{Y} => {$13}.
+    {$12} => {$13}.
+    {$13}{Y} => {$12}{Y}.
+    {$13} => {$14}.
+    {$14}.
 
-	? {$0}{X}^11{Y}^9.
+    ? {$0}{X}^11{Y}^9.
 
 The output of `simp_cr.py -f` in this case is:
 
-	# {$0} --> 17
-	# {$10} --> 37
-	# {$11} --> 29
-	# {$12} --> 11
-	# {$13} --> 19
-	# {$14} --> 59
-	# {$1} --> 13
-	# {$2} --> 43
-	# {$3} --> 41
-	# {$4} --> 61
-	# {$5} --> 47
-	# {$6} --> 3
-	# {$7} --> 23
-	# {$8} --> 31
-	# {$9} --> 53
-	# {X} --> 5
-	# {Y1} --> 7
-	# {Y} --> 2
-	# {Z} --> 67
+    # {$0} --> 17
+    # {$10} --> 37
+    # {$11} --> 29
+    # {$12} --> 11
+    # {$13} --> 19
+    # {$14} --> 59
+    # {$1} --> 13
+    # {$2} --> 43
+    # {$3} --> 41
+    # {$4} --> 61
+    # {$5} --> 47
+    # {$6} --> 3
+    # {$7} --> 23
+    # {$8} --> 31
+    # {$9} --> 53
+    # {X} --> 5
+    # {Y1} --> 7
+    # {Y} --> 2
+    # {Z} --> 67
 
-	85 => 65.
-	17 => 11.
-	26 => 86.
-	13 => 3.
-	86 => 41.
-	43 => 41.
-	41 => 427.
-	61 => 3149.
-	47 => 13.
-	21 => 161.
-	3 => 37.
-	161 => 31.
-	23 => 31.
-	31 => 106.
-	53 => 3.
-	185 => 29.
-	37 => 29.
-	29 => 17.
-	22 => 19.
-	11 => 19.
-	38 => 22.
-	19 => 59.
-	59.
+    85 => 65.
+    17 => 11.
+    26 => 86.
+    13 => 3.
+    86 => 41.
+    43 => 41.
+    41 => 427.
+    61 => 3149.
+    47 => 13.
+    21 => 161.
+    3 => 37.
+    161 => 31.
+    23 => 31.
+    31 => 106.
+    53 => 3.
+    185 => 29.
+    37 => 29.
+    29 => 17.
+    22 => 19.
+    11 => 19.
+    38 => 22.
+    19 => 59.
+    59.
 
-	? 425000000000.
+    ? 425000000000.
 
 The comments indicate the prime that corresponds to each variable in the
 original source program.

@@ -160,7 +160,12 @@ class Poly(object):
         return q, r
 
     def __div__(self, p):
-        pass
+        q, r = self.div_mod(p)
+        return q
+
+    def __mod__(self, p):
+        q, r = self.div_mod(p)
+        return r
 
     def leading_monomial(self):
         k = lexisorted(self._coeffs.keys())[0]
@@ -345,6 +350,8 @@ def tokenize(s, filename='...'):
                 '+': 'ADDOP',
                 '-': 'ADDOP',
                 '*': 'MULOP',
+                '/': 'MULOP',
+                '%': 'MULOP',
                 '^': 'EXPOP',
                 '(': 'LPAREN',
                 ')': 'RPAREN',
@@ -389,19 +396,39 @@ def parse_atom(tokens, i=0):
     else:
         raise CratylusException('Parse error: unexpected token found: %s' % (tokens[i],), tokens[i].pos)
 
-def parse_monomial(tokens, i=0):
+def parse_factor(tokens, i=0):
     res = poly_from_constant(1)
-    while i < len(tokens) and tokens[i].type not in ['ADDOP'] + terminators():
+    while i < len(tokens) and tokens[i].type not in ['MULOP', 'ADDOP'] + terminators():
         i, a = parse_atom(tokens, i)
-
         while i < len(tokens) and tokens[i].type in ['EXPOP']:
             i, p = parse_num(tokens, i + 1)
             a = a ** p
+        res = res * a
+    return i, res
+
+def parse_term(tokens, i=0):
+    res = poly_from_constant(1)
+    nextop = '*'
+    while i < len(tokens) and tokens[i].type not in ['ADDOP'] + terminators():
+        i, a = parse_factor(tokens, i)
+
+        if nextop == '*':
+            res = res * a
+        elif nextop == '/':
+            if a.is_null():
+                raise CratylusException('Division by zero.', tokens[i].pos)
+            res = res / a
+        elif nextop == '%':
+            if a.is_null():
+                raise CratylusException('Division by zero.', tokens[i].pos)
+            res = res % a
 
         if i < len(tokens) and tokens[i].type in ['MULOP']:
+            nextop = tokens[i].value
             i += 1
+        else:
+            nextop = '*'
 
-        res = res * a
     return i, res
 
 def parse_polynomial(tokens, i=0):
@@ -413,7 +440,7 @@ def parse_polynomial(tokens, i=0):
         i += 1
 
     while i < len(tokens):
-        i, f = parse_monomial(tokens, i)
+        i, f = parse_term(tokens, i)
         if sign == '-':
             f = -f
         res = res + f
