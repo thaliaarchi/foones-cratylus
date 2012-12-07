@@ -1,5 +1,9 @@
 #!/usr/bin/python
 import sys
+sys.path.append('../')
+
+import string
+
 import cratylus
 
 class SimpCrException(Exception):
@@ -43,12 +47,40 @@ def gen_irreducible_polys(n):
         polys.append(cratylus.poly_from_var('x') + cratylus.poly_from_constant(k))
     return polys
 
+def alphanumeric_strings_of_length(length):
+    if length == 0:
+        yield ''
+    else:
+        for x in string.lowercase:
+            for xs in alphanumeric_strings_of_length(length - 1):
+                yield x + xs
+
+def alphanumeric_identifiers():
+    for x in alphanumeric_strings_of_length(1):
+        yield x
+    k = 0
+    while True:
+        k += 1
+        for x in alphanumeric_strings_of_length(k):
+            yield x[0].upper() + x[1:]
+
+def gen_compact_vars(n):
+    res = []
+    i = 0
+    for x in alphanumeric_identifiers():
+        if i == n: break
+        res.append(cratylus.poly_from_var(x))
+        i += 1
+    return res
+
 def irreducible_elements(n, translation_type):
     "Return n irreducible elements appropiate for the given translation type"
     if translation_type == 'fractran':
         return [cratylus.poly_from_constant(p) for p in gen_primes(n)]
     elif translation_type == 'univariate':
         return gen_irreducible_polys(n)
+    elif translation_type == 'vars_compact':
+        return gen_compact_vars(n)
     else:
         assert False
 
@@ -109,11 +141,14 @@ def translate_program(filename, program, translation_type):
 
 def usage():
     sys.stderr.write('Normalize or translate a Cratylus program.\n')
-    sys.stderr.write('Usage: %s <infile> [options]\n' % (sys.argv[0],))
+    sys.stderr.write('Copyright (c) 2012 - Pablo Barenbaum <foones@gmail.com>\n')
+    sys.stderr.write('Usage:\n')
+    sys.stderr.write('    %s <infile.cr> [options]\n' % (sys.argv[0],))
     sys.stderr.write('Options:\n')
-    sys.stderr.write('    -o <outfile>    write the results in <outfile>\n')
-    sys.stderr.write('    -f              translate a monomial form program to FRACTRAN\n')
-    sys.stderr.write('    -u              translate a monomial form program to univariate polynomials\n')
+    sys.stderr.write('    -o <outfile.cr>   write the results in <outfile>\n')
+    sys.stderr.write('    -f                translate a monomial form program to FRACTRAN\n')
+    sys.stderr.write('    -u                translate a monomial form program to univariate polynomials\n')
+    sys.stderr.write('    -v                compact variable names\n')
     sys.exit(1)
 
 if __name__ == '__main__':
@@ -128,6 +163,9 @@ if __name__ == '__main__':
             i += 1
         elif sys.argv[i] == '-u':
             translation = 'univariate'
+            i += 1
+        elif sys.argv[i] == '-v':
+            translation = 'vars_compact'
             i += 1
         elif sys.argv[i] == '-o':
             i += 1

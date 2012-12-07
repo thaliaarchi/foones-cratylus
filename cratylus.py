@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+import re
 import sys
 import string
 import readline
@@ -234,11 +235,15 @@ class Poly(object):
 
             def s_pow(v, p):
                 if p == 1:
-                    return '%s' % (v,)
+                    if v[0] in string.uppercase:
+                        return '%s ' % (v,)
+                    else:
+                        return '%s' % (v,)
                 else:
                     return '%s^%s' % (v, p)
 
-            s_var = ''.join([s_pow(v, p) for v, p in k])
+            s_var = ''.join([s_pow(v, p) for v, p in k]).strip(' ')
+            s_var = re.sub(' ([A-Z])', '\\1', s_var)
 
             if abs(coef) == 1 and s_var != '':
                 s_coef = ''

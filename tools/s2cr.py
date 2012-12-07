@@ -67,34 +67,34 @@ def s_to_cratylus(string):
 
         if op[0] == 'inc':
             var = op[1]
-            result.append('{$%u} => {$%u}{%s}' % (numline, numline + 1, var))
+            result.append('{%u} => {%u}{%s}' % (numline, numline + 1, var))
 
         elif op[0] == 'dec':
             var = op[1]
-            result.append('{$%u}{%s} => {$%u}' % (numline, var, numline + 1))
-            result.append('{$%u} => {$%u}' % (numline, numline + 1))
+            result.append('{%u}{%s} => {%u}' % (numline, var, numline + 1))
+            result.append('{%u} => {%u}' % (numline, numline + 1))
 
         elif op[0] in ['jmp', 'goto']:
             label = op[1]
-            result.append('{$%u} => {$%u}' % (numline, labels_to_numlines[label]))
+            result.append('{%u} => {%u}' % (numline, labels_to_numlines[label]))
 
         elif op[0] in ['jnz']:
             var = op[1]
             label = op[2]
-            result.append('{$%u}{%s} => {$%u}{%s}' % (numline, var, labels_to_numlines[label], var))
-            result.append('{$%u} => {$%u}' % (numline, numline + 1))
+            result.append('{%u}{%s} => {%u}{%s}' % (numline, var, labels_to_numlines[label], var))
+            result.append('{%u} => {%u}' % (numline, numline + 1))
 
         elif op[0] in ['jz']:
             var = op[1]
             label = op[2]
-            result.append('{$%u}{%s} => {$%u}{%s}' % (numline, var, numline + 1, var))
-            result.append('{$%u} => {$%u}' % (numline, labels_to_numlines[label]))
+            result.append('{%u}{%s} => {%u}{%s}' % (numline, var, numline + 1, var))
+            result.append('{%u} => {%u}' % (numline, labels_to_numlines[label]))
 
         numline += 1
 
-    result.append('{$%u}' % (numline,))
+    result.append('{%u}' % (numline,))
 
-    goal = ['{$0}']
+    goal = ['{0}']
     for var, val in sorted(initial_values.items()):
         goal.append('{%s}^%u' % (var, val))
 
@@ -106,7 +106,7 @@ def usage():
     sys.stderr.write('Dumb S to Cratylus compiler.\n')
     sys.stderr.write('Copyright (c) 2012 - Pablo Barenbaum <foones@gmail.com>\n')
     sys.stderr.write('Usage:\n')
-    sys.stderr.write('    %s <file.s>\n' % (sys.argv[0],))
+    sys.stderr.write('    %s <infile.s>\n' % (sys.argv[0],))
     sys.exit(1)
 
 if __name__ == '__main__':
