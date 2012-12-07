@@ -376,7 +376,7 @@ def parse_num(tokens, i=0):
     if tokens[i].type == 'NUM':
         return i + 1, tokens[i].value
     else:
-        raise CratylusException('Parse error: expected a number' % (tokens[i],), tokens[i].pos)
+        raise CratylusException('Parse error: expected a number: %s' % (tokens[i],), tokens[i].pos)
 
 def parse_atom(tokens, i=0):
     if i >= len(tokens):
