@@ -166,6 +166,9 @@ class Poly(object):
         k = lexisorted(self._coeffs.keys())[0]
         return Poly({k: self._coeffs[k]})
 
+    def coefficients(self):
+        return self._coeffs
+
     def as_constant(self):
         if len(self._coeffs) == 0:
             return 0
@@ -639,7 +642,7 @@ if __name__ == '__main__':
             i += 1
 
     if len(args) != 1:
-        usage(False)
+        usage(exit=False)
         if not OPTIONS['script']:
             toplevel([])
         sys.exit(1)
