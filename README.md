@@ -18,7 +18,7 @@ For instance, the following program has only one rule:
 
 Given a query:
 
-    ? x^2y^2.
+    ? x^2 y^2.
 
 it gets rewritten to `xyz`, and this in turn to `z^2`,
 which is the normal form.
@@ -34,8 +34,8 @@ Given a polynomial `P`, let `i` be the least index such that `Ri` divides `P`,
 that is, `P = Ri Q`. Then `P` gets rewritten to `Si Q`.
 If there is no such index, `P` is in normal form.
 
-Hopefully interesting examples
-------------------------------
+Attempts to catch your attention
+--------------------------------
 
 This Cratylus program computes factorials:
 
