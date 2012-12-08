@@ -54,8 +54,38 @@ For instance, interacting with the Cratylus toplevel:
     Z^5040
 
 Bear in mind the second query takes a *really* long time to arrive
-to the answer. By using the Cratylus to C compiler, one can compute
+to the answer. By using the Cratylus to C broken compiler, one can compute
 up to the factorial of 10 (`Z^3628800`) in a few seconds.
+
+The following Cratylus program is able to calculate the n-th prime
+number. The main goal, `? BcE^20.`, queries for the 20-th prime number:
+
+    Bc=>{_}G.EG=>BhE.G=>Bd.Bh=>{_}Aj.{_}Aj=>{_}Am.Aj=>e.
+    {_}Am=>F.Am=>F.{_}F=>{_}M.F=>N.{_}M=>n.M=>n.n{_}=>{_}Bb.
+    n=>Be.Bb=>{_}Az.Az=>m{_}.m{_}=>{_}L.m=>y.{_}L=>Y.L=>Y.
+    Y=>aBa.Ba=>xBk.Bk=>m.xy=>xAp.y=>I.xAp=>Al.Ap=>Al.Al=>{_}Ax.
+    Ax=>y.aI=>s.I=>s.as=>h.s=>h.ah=>aBi.h=>Bj.Bi=>aq.
+    q{_}=>{_}An.q=>v.{_}An=>Ab.An=>Ab.Ab=>fAw.Aw=>oBl.Bl=>q.
+    ov=>oK.v=>u.oK=>Ai.K=>Ai.Ai=>{_}Bg.Bg=>v.au=>aV.u=>D.aV=>Q.
+    V=>Q.Q=>cAv.Av=>tBp.Bp=>u.tD=>tAf.D=>w.tAf=>Aa.Af=>Aa.
+    Aa=>aBn.Bn=>D.fw=>fz.w=>B.cz=>cAg.z=>C.cAg=>W.Ag=>W.W=>dAt.
+    At=>bAy.Ay=>z.dC=>dAq.C=>r.fAq=>fAd.Aq=>i.fAd=>l.Ad=>l.
+    dl=>H.l=>H.H=>C.br=>bS.r=>Bo.bS=>Ah.S=>Ah.Ah=>cBf.Bf=>r.
+    Bo=>w.cB=>cP.B=>i.cP=>J.P=>J.J=>B.di=>dO.i=>Ac.dO=>p.O=>p.
+    bp=>X.p=>X.X=>i.bAc=>bA.Ac=>e.bA=>bAk.A=>Z.bAk=>Ar.Ak=>Ar.
+    Ar=>A.aZ=>k.Z=>k.ak=>U.k=>U.U=>h.Bj=>gAu.Au=>e.Be=>gBm.
+    Bm=>{_}N.N=>e{_}.ae=>aAo.e=>Ae.aAo=>T.Ao=>T.T=>e.gAe=>gAs.
+    Ae=>j.AsE=>j.As=>j.gj=>R.j=>R.R=>G.Bd.
+
+    ? BcE^20.
+
+Again, the results take a very long time with the standard
+interpreter. By using the Cratylus to C broken compiler, the
+answer is:
+
+    {_}^71
+ 
+which is, in fact, the 20-th prime number.
 
 Features
 --------
