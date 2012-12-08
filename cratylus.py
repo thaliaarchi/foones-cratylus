@@ -191,6 +191,17 @@ class Poly(object):
     def is_monomial(self):
         return len(self._coeffs) == 1
 
+    def is_univariate(self, var):
+        for k, v in self._coeffs.items():
+            if len(k) == 0:
+                continue
+            if len(k) > 1:
+                return False
+            kvar, kpow = k[0]
+            if kvar != var:
+                return False
+        return True
+
     def is_null(self):
         return len(self._coeffs) == 0
 

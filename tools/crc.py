@@ -9,6 +9,41 @@ import cratylus
 class CrcException(Exception):
     pass
 
+def collect_polys(program):
+    all_polys = []
+    for rule in program.rules:
+        if rule.is_goal():
+            all_polys.extend(rule.clause)
+        else:
+            all_polys.append(rule.head)
+            all_polys.extend(rule.clause)
+    return all_polys
+
+def in_monomial_form(polys):
+    for poly in polys:
+        if not poly.is_monomial():
+            return False
+    return True
+
+def in_univariate_form(polys):
+    for poly in polys:
+        if not poly.is_univariate('x'):
+            return False
+    return True
+
+def cratylus_compile(filename, program):
+    program = cratylus.parse_program(program, filename)
+
+    all_polys = collect_polys(program)
+    if in_monomial_form(all_polys):
+        return crc(program)
+    elif in_univariate_form(all_polys):
+        return uni_crc(program)
+    else:
+        raise CrcException('program is not in monomial or univariate form, cannot compile')
+
+#### Monomial form compiler
+
 def crc_condition(monomial, table):
     key, coef = monomial.coefficients().items()[0]
     cond = []
@@ -23,17 +58,9 @@ def crc_inc_dec(monomial, table, sign, indent=''):
         stmt.append('%sv[%u] %s= %u;\n' % (indent, table[var], sign, power))
     return ''.join(stmt)
 
-def crc(filename, program):
-    program = cratylus.parse_program(program, filename)
+def crc(program):
 
-    # Collect all polynomials
-    all_polys = []
-    for rule in program.rules:
-        if rule.is_goal():
-            all_polys.extend(rule.clause)
-        else:
-            all_polys.append(rule.head)
-            all_polys.extend(rule.clause)
+    all_polys = collect_polys(program)
 
     # Count variables
     var_count = {}
@@ -79,7 +106,7 @@ def crc(filename, program):
     # Translate program
     prog.append('int main()\n')
     prog.append('{\n')
-    prog.append('\tint i;\n')
+    prog.append('\tint i, z;\n')
     prog.append('\n')
     prog.append('\t/* Initialize */\n')
     prog.append('\tfor (i = 0; i < VARS; i++) {\n')
@@ -112,16 +139,300 @@ def crc(filename, program):
     prog.append('\t\t}\n')
     prog.append('\t}\n')
     prog.append('\n')
+    prog.append('\tz = 1;\n')
     prog.append('\tfor (i = 0; i < VARS; i++) {\n')
     prog.append('\t\tif (v[i] > 0) {\n')
+    prog.append('\t\t\tz = 0;\n')
     prog.append('\t\t\tprintf("%s", n[i]);\n')
     prog.append('\t\t\tif (v[i] > 1) {\n')
     prog.append('\t\t\t\tprintf("^%lu", v[i]);\n')
     prog.append('\t\t\t}\n')
     prog.append('\t\t}\n')
     prog.append('\t}\n')
+    prog.append('\tif (z) {\n')
+    prog.append('\t\tprintf("1");\n')
+    prog.append('\t}\n')
     prog.append('\tprintf("\\n");\n')
     prog.append('\n')
+    prog.append('\treturn 0;\n')
+    prog.append('}\n')
+    return ''.join(prog)
+
+#### Univariate form compiler
+
+def uni_serialize_poly(poly):
+    coef_by_deg = {}
+    for k, coef in poly.coefficients().items():
+        if k == ():
+            coef_by_deg[0] = coef
+        elif len(k) == 1:
+            var, power = k[0]
+            if var != 'x':
+                raise CrcException('polynomial %s is not univariate in x' % (poly,))
+            coef_by_deg[power] = coef
+        else:
+            raise CrcException('polynomial %s is not univariate' % (poly,))
+    
+    degree = 0
+    for d, coef in coef_by_deg.items():
+        degree = max(degree, d)
+
+    serial = []
+    serial.append(degree)
+    serial.extend([coef_by_deg.get(d, 0) for d in range(degree + 1)])
+    return '/* %s */ {%s}' % (poly, ', '.join([str(s) for s in serial]))
+
+def uni_crc(program):
+    prog = []
+    prog.append('#include <stdio.h>\n')
+    prog.append('#include <stdlib.h>\n')
+    prog.append('\n')
+    prog.append('typedef signed long int C;\n')
+    prog.append('\n')
+    prog.append('typedef struct {\n')
+    prog.append('\tC *h;\n')
+    prog.append('\tC *b;\n')
+    prog.append('} R;\n')
+    prog.append('\n')
+    prog.append('#define NPOLYS 8\n')
+    prog.append('signed long int limdeg;\n')
+    prog.append('C *p[NPOLYS];\n')
+    prog.append('\n')
+
+    num_rules = 0
+    for rule in program.rules:
+        if rule.is_goal(): continue
+        num_rules += 1
+
+    prog.append('#define NRULES %u\n' % (num_rules,))
+    prog.append('R r[NRULES];\n')
+    prog.append('\n')
+
+    rule_index = 0
+    for rule in program.rules:
+        if rule.is_goal(): continue
+        prog.append('C h%u[] = %s;\n' % (rule_index, uni_serialize_poly(rule.head),))
+
+        if len(rule.clause) > 1:
+            raise CrcException('rule %s should have at most one clause in the body' % (rule,))
+
+        if len(rule.clause) == 0:
+            prog.append('C b%u[] = /* 1 */ {0, 1};\n' % (rule_index,))
+        else:
+            for m in rule.clause:
+                prog.append('C b%u[] = %s;\n' % (rule_index, uni_serialize_poly(m),))
+
+        rule_index += 1
+
+    ngoals = 0
+    for rule in program.rules:
+        if not rule.is_goal(): continue
+        ngoals += 1
+        if ngoals > 1:
+            raise CrcException('Cratylus to C broken compiler supports at most one goal')
+        if len(rule.clause) > 1:
+            raise CrcException('goal %s should have at most one clause' % (rule,))
+        for m in rule.clause:
+            prog.append('C g[] = %s;\n' % (uni_serialize_poly(m),))
+
+    prog.append('\n')
+    prog.append('#define deg(P)            ((P)[0])\n')
+    prog.append('#define coef(P, I)        ((I) <= deg(P) ? (P)[(I) + 1] : 0)\n')
+    prog.append('#define setcoef(P, I, X)  ((P)[(I) + 1]) = (X)\n')
+    prog.append('#define ABS(X)            ((X) < 0 ? -(X) : (X))\n')
+    prog.append('#define MAX(X, Y)         ((X) > (Y) ? (X) : (Y))\n')
+    prog.append('\n')
+    prog.append('void show_poly(C *poly)\n')
+    prog.append('{\n')
+    prog.append('\tint i;\n')
+    prog.append('\tC ci;\n')
+    prog.append('\tint z = 1;\n')
+    prog.append('\tint fst = 1;\n')
+    prog.append('\tfor (i = deg(poly); i >= 0; i--) {\n')
+    prog.append('\t\tci = coef(poly, i);\n')
+    prog.append('\t\tif (ci != 0) {\n')
+    prog.append('\t\t\tz = 0;\n')
+    prog.append('\t\t\tif (ci < 0 && fst) {\n')
+    prog.append('\t\t\t\tprintf("-");\n')
+    prog.append('\t\t\t}\n')
+    prog.append('\t\t\tif (!fst) {\n')
+    prog.append('\t\t\t\tif (ci < 0) {\n')
+    prog.append('\t\t\t\t\tprintf(" - ");\n')
+    prog.append('\t\t\t\t} else {\n')
+    prog.append('\t\t\t\t\tprintf(" + ");\n')
+    prog.append('\t\t\t\t}\n')
+    prog.append('\t\t\t}\n')
+    prog.append('\t\t\tfst = 0;\n')
+    prog.append('\t\t\tif (i == 0 || ABS(ci) != 1) {\n')
+    prog.append('\t\t\t\tprintf("%li", ABS(ci));\n')
+    prog.append('\t\t\t}\n')
+    prog.append('\t\t\tif (i == 1) {\n')
+    prog.append('\t\t\t\tprintf("x");\n')
+    prog.append('\t\t\t} else if (i > 1) {\n')
+    prog.append('\t\t\t\tprintf("x^%u", i);\n')
+    prog.append('\t\t\t}\n')
+    prog.append('\t\t}\n')
+    prog.append('\t}\n')
+    prog.append('\tif (z) {\n')
+    prog.append('\t\tprintf("0");\n')
+    prog.append('\t}\n')
+    prog.append('\tprintf("\\n");\n')
+    prog.append('}\n')
+    prog.append('\n')
+    prog.append('void copy_poly(C *dst, C *src)\n')
+    prog.append('{\n')
+    prog.append('\tint i;\n')
+    prog.append('\tdeg(dst) = deg(src);\n')
+    prog.append('\tfor (i = 0; i <= deg(src); i++) {\n')
+    prog.append('\t\tsetcoef(dst, i, coef(src, i));\n')
+    prog.append('\t}\n')
+    prog.append('}\n')
+    prog.append('\n')
+    prog.append('void ensure_deg(int d)\n')
+    prog.append('{\n')
+    prog.append('\tint i, j;\n')
+    prog.append('\tC *newp, *oldp;\n')
+    prog.append('\tint newlim = limdeg;\n')
+    prog.append('\twhile (d + 3 >= newlim) {\n')
+    prog.append('\t\tnewlim = 2 * newlim;\n')
+    prog.append('\t}\n')
+    prog.append('\tif (newlim == limdeg) return;\n')
+    prog.append('\t\n')
+    prog.append('\tfor (i = 0; i < NPOLYS; i++) {\n')
+    prog.append('\t\tnewp = (C *)malloc(sizeof(C) * newlim);\n')
+    prog.append('\t\tfor (j = 0; j < limdeg; j++) {\n')
+    prog.append('\t\t\tnewp[j] = p[i][j];\n')
+    prog.append('\t\t}\n')
+    prog.append('\t\tfor (j = limdeg; j < newlim; j++) {\n')
+    prog.append('\t\t\tnewp[j] = 0;\n')
+    prog.append('\t\t}\n')
+    prog.append('\t\toldp = p[i];\n')
+    prog.append('\t\tp[i] = newp;\n')
+    prog.append('\t\tfree(oldp);\n')
+    prog.append('\t}\n')
+    prog.append('\tlimdeg = newlim;\n')
+    prog.append('}\n')
+    prog.append('\n')
+    prog.append('void zero_poly(C *p, int m)\n')
+    prog.append('{\n')
+    prog.append('\tint i;\n')
+    prog.append('\tdeg(p) = 0;\n')
+    prog.append('\tfor (i = 0; i <= m; i++) {\n')
+    prog.append('\t\tsetcoef(p, i, 0);\n')
+    prog.append('\t}\n')
+    prog.append('}\n')
+    prog.append('\n')
+    prog.append('void fixdeg(C *p)\n')
+    prog.append('{\n')
+    prog.append('\twhile (deg(p) > 0 && coef(p, deg(p)) == 0) {\n')
+    prog.append('\t\tdeg(p)--;\n')
+    prog.append('\t}\n')
+    prog.append('}\n')
+    prog.append('\n')
+    prog.append('void addcoef(C *p, int pow, C val)\n')
+    prog.append('{\n')
+    prog.append('\tsetcoef(p, pow, coef(p, pow) + val);\n')
+    prog.append('\tdeg(p) = MAX(deg(p), pow);\n')
+    prog.append('\tfixdeg(p);\n')
+    prog.append('}\n')
+    prog.append('\n')
+    prog.append('void add_poly(int x1, int x2, int x3)\n')
+    prog.append('{\n')
+    prog.append('\tint i;\n')
+    prog.append('\tensure_deg(MAX(deg(p[x1]), deg(p[x2])));\n')
+    prog.append('\tzero_poly(p[x3], MAX(deg(p[x1]), deg(p[x2])));\n')
+    prog.append('\tdeg(p[x3]) = MAX(deg(p[x1]), deg(p[x2]));\n')
+    prog.append('\tfor (i = 0; i <= MAX(deg(p[x1]), deg(p[x2])); i++) {\n')
+    prog.append('\t\tsetcoef(p[x3], i, coef(p[x1], i) + coef(p[x2], i));\n')
+    prog.append('\t}\n')
+    prog.append('\tfixdeg(p[x3]);\n')
+    prog.append('}\n')
+    prog.append('\n')
+    prog.append('void mul_poly(int x1, int x2, int x3)\n')
+    prog.append('{\n')
+    prog.append('\tint i, j;\n')
+    prog.append('\tensure_deg(deg(p[x1]) + deg(p[x2]));\n')
+    prog.append('\tzero_poly(p[x3], deg(p[x1]) + deg(p[x2]));\n')
+    prog.append('\tdeg(p[x3]) = deg(p[x1]) + deg(p[x2]);\n')
+    prog.append('\tfor (i = 0; i <= deg(p[x1]); i++) {\n')
+    prog.append('\t\tfor (j = 0; j <= deg(p[x2]); j++) {\n')
+    prog.append('\t\t\tsetcoef(p[x3], i + j, coef(p[x3], i + j) + coef(p[x1], i) * coef(p[x2], j));\n')
+    prog.append('\t\t}\n')
+    prog.append('\t}\n')
+    prog.append('\tfixdeg(p[x3]);\n')
+    prog.append('}\n')
+    prog.append('\n')
+    prog.append('#define poly_null(P) (deg(P) == 0 && coef((P), 0) == 0)\n')
+    prog.append('\n')
+    prog.append('void divmod_poly(int xa, int xb, int xq, int xr, int xt1, int xt2)\n')
+    prog.append('{\n')
+    prog.append('\tint da, db;\n')
+    prog.append('\tC lead_a, lead_b, quot;\n')
+    prog.append('\t\n')
+    prog.append('\tzero_poly(p[xq], MAX(deg(p[xa]), deg(p[xb])));\n')
+    prog.append('\tzero_poly(p[xr], MAX(deg(p[xa]), deg(p[xb])));\n')
+    prog.append('\twhile (!poly_null(p[xa])) {\n')
+    prog.append('\t\tda = deg(p[xa]);\n')
+    prog.append('\t\tdb = deg(p[xb]);\n')
+    prog.append('\t\tlead_a = coef(p[xa], da);\n')
+    prog.append('\t\tlead_b = coef(p[xb], db);\n')
+    prog.append('\t\tif (da >= db && lead_a % lead_b == 0) {\n')
+    prog.append('\t\t\tquot = lead_a / lead_b;\n')
+    prog.append('\t\t\taddcoef(p[xq], da - db, quot);\n')
+    prog.append('\t\t\tzero_poly(p[xt1], da);\n')
+    prog.append('\t\t\taddcoef(p[xt1], da - db, -quot);\n')
+    prog.append('\t\t\tmul_poly(xb, xt1, xt2);\n')
+    prog.append('\t\t\tadd_poly(xa, xt2, xt1);\n')
+    prog.append('\t\t\tcopy_poly(p[xa], p[xt1]);\n')
+    prog.append('\t\t} else {\n')
+    prog.append('\t\t\taddcoef(p[xr], da, lead_a);\n')
+    prog.append('\t\t\taddcoef(p[xa], da, -lead_a);\n')
+    prog.append('\t\t}\n')
+    prog.append('\t}\n')
+    prog.append('}\n')
+    
+    prog.append('\n')
+    prog.append('int main()\n')
+    prog.append('{\n')
+    prog.append('\tint i, j, nf;\n')
+    for rule_index in range(num_rules):
+        prog.append('\tr[%u].h = h%u;\n' % (rule_index, rule_index))
+        prog.append('\tr[%u].b = b%u;\n' % (rule_index, rule_index))
+        prog.append('\t\n')
+
+    prog.append('\tlimdeg = deg(g);\n')
+    prog.append('\tfor (i = 0; i < NRULES; i++) {\n')
+    prog.append('\t\tlimdeg = MAX(limdeg, deg(r[i].h));\n')
+    prog.append('\t\tlimdeg = MAX(limdeg, deg(r[i].b));\n')
+    prog.append('\t}\n')
+    prog.append('\tlimdeg += 2;\n')
+    prog.append('\t\n')
+    prog.append('\tfor (i = 0; i < NPOLYS; i++) {\n')
+    prog.append('\t\tp[i] = (C *)malloc(sizeof(C) * limdeg);\n')
+    prog.append('\t\tfor (j = 0; j < limdeg; j++) {\n')
+    prog.append('\t\t\tp[i][j] = 0;\n')
+    prog.append('\t\t}\n')
+    prog.append('\t}\n')
+    prog.append('\t\n')
+    prog.append('\tcopy_poly(p[6], g);\n')
+    prog.append('\tnf = 0;\n')
+    prog.append('\twhile (!nf) {\n')
+    prog.append('\t\tnf = 1;\n')
+    prog.append('\t\tfor (i = 0; i < NRULES; i++) {\n')
+    prog.append('\t\t\tcopy_poly(p[0], p[6]);\n')
+    prog.append('\t\t\tcopy_poly(p[1], r[i].h);\n')
+    prog.append('\t\t\tdivmod_poly(0, 1, 2, 3, 4, 5);\n')
+    prog.append('\t\t\tif (poly_null(p[3])) {\n')
+    prog.append('\t\t\t\tcopy_poly(p[1], r[i].b);\n')
+    prog.append('\t\t\t\tmul_poly(1, 2, 6);\n')
+    prog.append('\t\t\t\tnf = 0;\n')
+    prog.append('\t\t\t\tbreak;\n')
+    prog.append('\t\t\t}\n')
+    prog.append('\t\t}\n')
+    prog.append('\t}\n')
+    prog.append('\t\n')
+    prog.append('\tshow_poly(p[6]);\n')
+    prog.append('\t\n')
     prog.append('\treturn 0;\n')
     prog.append('}\n')
     return ''.join(prog)
@@ -130,7 +441,7 @@ def usage():
     sys.stderr.write('Cratylus to C broken compiler.\n')
     sys.stderr.write('Copyright (c) 2012 - Pablo Barenbaum <foones@gmail.com>\n')
     sys.stderr.write('Usage:\n')
-    sys.stderr.write('    %s <infile.cr>\n' % (sys.argv[0],))
+    sys.stderr.write('    %s <infile.cr> [options]\n' % (sys.argv[0],))
     sys.exit(1)
 
 if __name__ == '__main__':
@@ -146,7 +457,7 @@ if __name__ == '__main__':
     contents = f.read()
     f.close()
 
-    result = crc(infile, contents)
+    result = cratylus_compile(infile, contents)
 
     print result
 

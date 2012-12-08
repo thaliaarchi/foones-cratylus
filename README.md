@@ -54,8 +54,12 @@ For instance, interacting with the Cratylus toplevel:
     Z^5040
 
 Bear in mind the second query takes a *really* long time to arrive
-to the answer. By using the Cratylus to C broken compiler, one can compute
-up to the factorial of 10 (`Z^3628800`) in a few seconds.
+to the answer. The reason for such slowness is that, internally,
+additions and multiplications are carried out in unary, and that
+takes a number of steps that grows exponentially with the length
+of the numbers involved. By using the Cratylus to C broken
+compiler, one can speed up the constant factors to compute up to
+the factorial of 10 (`Z^3628800`) in a few seconds.
 
 The following Cratylus program is able to calculate the n-th prime
 number. The main goal, `? BcE^20.`, queries for the 20-th prime number:
@@ -86,6 +90,88 @@ answer is:
     {_}^71
  
 which is, in fact, the 20-th prime number.
+
+The programs above make heavy use of the fact that Cratylus
+allows working with multivariate polynomials. One may wonder
+if there is a way of writing programs using only univariate
+polynomials. Indeed, the following is also a Cratylus program that
+calculates factorials:
+
+	x - 17 => x^2 + 7x.
+	x^2 + 8x + 7 => x^2 - 2x - 3.
+	x + 7 => x - 18.
+	x^2 - 2x - 3 => x^2 - 13x - 14.
+	x - 3 => x + 6.
+	x^2 - 13x - 14 => x + 11.
+	x - 14 => x + 11.
+	x + 11 => x^2 - 17x - 38.
+	x - 19 => x^2 + 20x + 51.
+	x + 17 => x - 3.
+	x^2 + 8x + 12 => x^2 - 7x - 18.
+	x + 6 => x - 2.
+	x^2 - 7x - 18 => x - 1.
+	x - 9 => x - 1.
+	x^2 - x => x^2 + 13x.
+	x - 1 => x - 5.
+	x^2 + 13x => x - 10.
+	x + 13 => x - 10.
+	x - 10 => x^2 + 24x + 95.
+	x + 19 => x^2 + 10x - 96.
+	x + 16 => x - 1.
+	x^2 - 25 => x^2 + 15x + 50.
+	x - 5 => x + 18.
+	x^2 + 15x + 50 => x - 12.
+	x + 10 => x - 12.
+	x - 12 => x^2 - 15x.
+	x - 15 => x - 5.
+	x + 18 => x + 6.
+	x^2 - 2x => x^2 + 12x.
+	x - 2 => x - 4.
+	x^2 + 12x => x + 8.
+	x + 12 => x + 8.
+	x + 8 => x - 2.
+	x^2 - 10x + 24 => x^2 - 14x + 48.
+	x - 4 => x + 4.
+	x^2 - 14x + 48 => x - 11.
+	x - 8 => x - 11.
+	x - 11 => x^2 + 15x.
+	x + 15 => x - 4.
+	x^2 + 7x + 12 => x^2 - 4x - 21.
+	x + 4 => x + 9.
+	x^2 - 4x - 21 => x - 13.
+	x - 7 => x - 13.
+	x - 13 => x^2 - 15x - 16.
+	x - 16 => x + 4.
+	x^2 + 10x + 9 => x + 14.
+	x + 9 => x + 14.
+	x + 14 => x + 7.
+	x - 18.
+
+For reasons not so evident to me, this version is orders
+of magnitude slower. For instance, on the following input:
+
+	? (x - 17) (x + 1)^3
+
+it calculates 3!
+
+	x^6
+
+Even though, superficially, our two factorial programs are
+very different, in essence they are exactly the same program.
+They can be put in correspondence by a relation like the
+following:
+
+    H <==> x - 17
+    m <==> x + 7
+    Z <==> x
+    a <==> x + 1
+    f <==> x - 3
+    ...
+
+See, for example, that the first rewriting rule of the first
+factorial program was `H => m Z`, which in the new program
+can be read as `x - 17 => (x + 7) x`, i.e.
+`x - 17 => x^2 + 7x`.
 
 Features
 --------
