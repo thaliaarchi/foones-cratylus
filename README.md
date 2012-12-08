@@ -1,12 +1,13 @@
 Cratylus
 ========
 
-*Si, como el griego afirma en el Cratilo*  
-*el nombre es arquetipo de la cosa*  
-*en la palabra* rosa *está la rosa*  
+*Si, como el griego afirma en el Cratilo,*  
+*el nombre es arquetipo de la cosa,*  
+*en las letras de* rosa *está la rosa*  
 *y todo el Nilo en la palabra* Nilo.  
 
-****
+Introduction
+------------
 
 Cratylus is a polynomial rewriting esolang.
 
@@ -30,7 +31,7 @@ More precisely, a Cratylus program is a sequence of rules, of the form:
 
 where each `Ri` and `Si` are multivariate polynomials with integer coefficients.
 Given a polynomial `P`, let `i` be the least index such that `Ri` divides `P`,
-that is, `P = Ri Q`. Then `P` gets rewritten as `Si Q`.
+that is, `P = Ri Q`. Then `P` gets rewritten to `Si Q`.
 If there is no such index, `P` is in normal form.
 
 Hopefully interesting examples
@@ -55,6 +56,20 @@ For instance, interacting with the Cratylus toplevel:
 Bear in mind the second query takes a *really* long time to arrive
 to the answer.
 
+Features
+--------
+
+As part of the Cratylus distribution, the following scripts
+are provided:
+
+* `cratylus.py` -- the Cratylus toplevel interpreter.
+
+* `tools/simp_cr.py` -- the Cratylus simplifier. Transforms Cratylus programs into equivalent Cratylus programs with particular restrictions.
+
+* `tools/s2cr.py` -- an S to Cratylus compiler. S is a simple assembler-like language with few instructions: increment and decrement, conditional and unconditional jumps.
+
+* `tools/ss2s.py` -- an S-with-macros to S compiler. S-with-macros is a slightly higher level language, with subroutines, and primitive control structures that get macroexpanded into plain S instructions.
+
 Turing completeness
 -------------------
 
@@ -70,7 +85,7 @@ gets translated to an equivalent Cratylus program:
     ...
     bN => aN.
 
-Since FRACTRAN is Turing complete, Cratylus also is.
+Since FRACTRAN is Turing complete, also is Cratylus.
 
 Moreover, as part of the Cratylus distribution, the script `s2cr.py`
 translates a program in the (theoretical) programming language S, which
@@ -95,7 +110,7 @@ Additionally, any string delimited by braces is a variable:
 
     <variable> ::= ... | {.*}
 
-Numeric literals are restricted to be digits:
+Numeric literals are restricted to be natural numbers:
 
     <num> ::= [0-9]+
 
@@ -105,8 +120,6 @@ and numbers. The abstract syntax is given by:
     <poly> ::= <poly> + <poly>
              | <poly> - <poly>
              | <poly> * <poly>
-             | <poly> / <poly>
-             | <poly> % <poly>
              | <poly> ^ <num>
 
 The usual precedence rules apply. All operators are left-associative.
@@ -122,8 +135,6 @@ More concretely:
 
     <term> ::= <factor>
              | <term> * <factor>
-             | <term> / <factor>
-             | <term> % <factor>
 
     <poly> ::= <term>
              | + <term>
@@ -132,10 +143,7 @@ More concretely:
              | <poly> - <term>
 
 Notice there are two ways of writing products:
-`<poly><poly>` and `<poly> * <poly>`. The former
-has stronger precedence, so:
-`10x / 2x = (10 * x) / (2 * x)` and
-`10x / 2*x = ((10 * x) / 2) * x`.
+`<poly><poly>` and `<poly> * <poly>`.
 
 Using Cratylus as a basic polynomial normalizer
 -----------------------------------------------

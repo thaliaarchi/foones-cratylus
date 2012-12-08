@@ -192,7 +192,7 @@ def ss_to_s(program):
     return compile_body(program.body, subroutines, {}, '')
 
 def usage():
-    sys.stderr.write('Compile an S program with macros to an S program.\n')
+    sys.stderr.write('Compile an S-with-macros program into a plain S program.\n')
     sys.stderr.write('Copyright (c) 2012 - Pablo Barenbaum <foones@gmail.com>\n')
     sys.stderr.write('Usage:\n')
     sys.stderr.write('    %s <infile.ss>\n' % (sys.argv[0],))
