@@ -1,12 +1,12 @@
 Cratylus
 ========
 
-<div style="text-align:right">
 *Si, como el griego afirma en el Cratilo*  
 *el nombre es arquetipo de la cosa*  
 *en la palabra* rosa *está la rosa*  
 *y todo el Nilo en la palabra* Nilo.  
-</div>
+
+****
 
 Cratylus is a polynomial rewriting esolang.
 
