@@ -1,6 +1,12 @@
 Cratylus
 ========
 
+
+*Si, como el griego afirma en el Cratilo*  
+*el nombre es arquetipo de la cosa*  
+*en la palabra* rosa *está la rosa*  
+*y todo el Nilo en la palabra* Nilo.  
+
 Cratylus is a polynomial rewriting esolang.
 
 A Cratylus program is a sequence of rewriting rules between multivariate polynomials.
@@ -43,6 +49,7 @@ For instance, interacting with the Cratylus toplevel:
     Z^120
 
     ? H a^7
+    Z^5040
 
 Bear in mind the second query takes a *really* long time to arrive
 to the answer.
@@ -257,7 +264,7 @@ given that the interpreter itself is a polynomial calculator
 The key aspect here is that we are representing information,
 and manipulating a representation. The difference is that this way
 of doing things "scales", in the sense that allows us to carry
-out many other processes.
+out other, more complex, processes.
 
 As in FRACTRAN, each variable can be thought as a register, and
 rewriting rules can be thought as simple incrementing / decrementing
