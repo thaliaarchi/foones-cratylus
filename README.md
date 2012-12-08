@@ -55,7 +55,7 @@ For instance, interacting with the Cratylus toplevel:
 
 Bear in mind the second query takes a *really* long time to arrive
 to the answer. By using the Cratylus to C compiler, one can compute
-up to the factorial of 10 (`{Z}^3628800`) in a few seconds.
+up to the factorial of 10 (`Z^3628800`) in a few seconds.
 
 Features
 --------
@@ -67,11 +67,11 @@ are provided:
 
 * `tools/simp_cr.py` -- the Cratylus simplifier. Transforms Cratylus programs into equivalent Cratylus programs with particular restrictions.
 
-* `tools/crc.py` -- Cratylus to C broken compiler. Compiles some Cratylus programs into C programs that are equivalent... sometimes.
+* `tools/crc.py` -- the Cratylus to C broken compiler. Compiles some Cratylus programs into C programs that are equivalent... sometimes.
 
-* `tools/s2cr.py` -- an S to Cratylus compiler. S is a simple assembler-like language with few instructions: increment and decrement, conditional and unconditional jumps.
+* `tools/s2cr.py` -- the S to Cratylus compiler. S is a simple assembler-like language with few instructions: increment and decrement, conditional and unconditional jumps.
 
-* `tools/ss2s.py` -- an S-with-macros to S compiler. S-with-macros is a slightly higher level language, with subroutines, and primitive control structures that get macroexpanded into plain S instructions.
+* `tools/ss2s.py` -- the S-with-macros to S compiler. S-with-macros is a slightly higher level language, with subroutines, and primitive control structures that get macroexpanded into plain S instructions.
 
 Turing completeness
 -------------------
@@ -216,49 +216,41 @@ Cratylus displays the following final result:
 
 When the `-v` command line option is used, Cratylus traces the steps of the reduction. 
 
-    ----------------------------------------
-    Current goal : ax^3y^2
-    Applying rule: ax => az
-    ax^3y^2 = ax * x^2y^2
-    New goal     : ax^2y^2z
-    ----------------------------------------
-    ----------------------------------------
-    Current goal : ax^2y^2z
-    Applying rule: ax => az
-    ax^2y^2z = ax * xy^2z
-    New goal     : axy^2z^2
-    ----------------------------------------
-    ----------------------------------------
-    Current goal : axy^2z^2
-    Applying rule: ax => az
-    axy^2z^2 = ax * y^2z^2
-    New goal     : ay^2z^3
-    ----------------------------------------
-    ----------------------------------------
-    Current goal : ay^2z^3
-    Applying rule: ay => az
-    ay^2z^3 = ay * yz^3
-    New goal     : ayz^4
-    ----------------------------------------
-    ----------------------------------------
-    Current goal : ayz^4
-    Applying rule: ay => az
-    ayz^4 = ay * z^4
-    New goal     : az^5
-    ----------------------------------------
-    ----------------------------------------
-    Current goal : az^5
-    Applying rule: a => 1
-    az^5 = a * z^5
-    New goal     : z^5
-    ----------------------------------------
-    Final result:
-    z^5
+	----------------------------------------
+	Current goal : ax^3y^2
+	Applying rule: ax => az
+	ax^3y^2 = (ax) * (x^2y^2)
+	New goal     : ax^2y^2z
+	----------------------------------------
+	Current goal : ax^2y^2z
+	Applying rule: ax => az
+	ax^2y^2z = (ax) * (xy^2z)
+	New goal     : axy^2z^2
+	----------------------------------------
+	Current goal : axy^2z^2
+	Applying rule: ax => az
+	axy^2z^2 = (ax) * (y^2z^2)
+	New goal     : ay^2z^3
+	----------------------------------------
+	Current goal : ay^2z^3
+	Applying rule: ay => az
+	ay^2z^3 = (ay) * (yz^3)
+	New goal     : ayz^4
+	----------------------------------------
+	Current goal : ayz^4
+	Applying rule: ay => az
+	ayz^4 = (ay) * (z^4)
+	New goal     : az^5
+	----------------------------------------
+	Current goal : az^5
+	Applying rule: a => 1
+	az^5 = (a) * (z^5)
+	New goal     : z^5
+	----------------------------------------
+	Final result:
+	z^5
 
-Rewriting rewriting
--------------------
-
-A different way of presenting the above rules:
+The following is a different way of presenting the above rules:
 
     Add X => Add Z.
     Add Y => Add Z.

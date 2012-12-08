@@ -548,11 +548,11 @@ def run_goal(rules, goal):
 
                 if OPTIONS['verbose']:
                     print 'New goal     : %s' % (goal,)
-                    print 40 * '-'
 
                 break
         else:
             if OPTIONS['verbose']:
+                print 40 * '-'
                 print 'Final result:'
             print goal
             break
