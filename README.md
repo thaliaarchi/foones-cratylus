@@ -54,7 +54,8 @@ For instance, interacting with the Cratylus toplevel:
     Z^5040
 
 Bear in mind the second query takes a *really* long time to arrive
-to the answer.
+to the answer. By using the Cratylus to C compiler, one can compute
+up to the factorial of 10 (`{Z}^3628800`) in a few seconds.
 
 Features
 --------
@@ -65,6 +66,8 @@ are provided:
 * `cratylus.py` -- the Cratylus toplevel interpreter.
 
 * `tools/simp_cr.py` -- the Cratylus simplifier. Transforms Cratylus programs into equivalent Cratylus programs with particular restrictions.
+
+* `tools/crc.py` -- Cratylus to C broken compiler. Compiles some Cratylus programs into C programs that are equivalent... sometimes.
 
 * `tools/s2cr.py` -- an S to Cratylus compiler. S is a simple assembler-like language with few instructions: increment and decrement, conditional and unconditional jumps.
 
@@ -671,63 +674,63 @@ For instance, the following S-with-macros program calculates factorials:
 The `ss2s.py` script translates the S-with-macros program to the
 following plain S program:
 
-		# fact X Z
-		inc Z
-	:l:1:
-	jz X :l:2
-		# bicopy X X1 X2
-	:l:3:
-	jz X :l:4
-		dec X
-		inc fact:1:X1
-		inc fact:1:X2
-	jmp :l:3
-	:l:4:
-		# mult X1 Y T
-	:l:5:
-	jz fact:1:X1 :l:6
-		dec fact:1:X1
-		# bicopy Y Y2 Z
-	:l:7:
-	jz Z :l:8
-		dec Z
-		inc mult:1:Y2
-		inc fact:1:T
-	jmp :l:7
-	:l:8:
-		# rename Y2 Y
-	:l:9:
-	jz mult:1:Y2 :l:10
-		dec mult:1:Y2
-		inc Z
-	jmp :l:9
-	:l:10:
-	jmp :l:5
-	:l:6:
-		# zero Y
-	:l:11:
-	jz Z :l:12
-		dec Z
-	jmp :l:11
-	:l:12:
-		# rename T Y
-	:l:13:
-	jz fact:1:T :l:14
-		dec fact:1:T
-		inc Z
-	jmp :l:13
-	:l:14:
-		# rename X2 X
-	:l:15:
-	jz fact:1:X2 :l:16
-		dec fact:1:X2
-		inc X
-	jmp :l:15
-	:l:16:
-		dec X
-	jmp :l:1
-	:l:2:
-		! X 5
+        # fact X Z
+        inc Z
+    :l:1:
+    jz X :l:2
+        # bicopy X X1 X2
+    :l:3:
+    jz X :l:4
+        dec X
+        inc fact:1:X1
+        inc fact:1:X2
+    jmp :l:3
+    :l:4:
+        # mult X1 Y T
+    :l:5:
+    jz fact:1:X1 :l:6
+        dec fact:1:X1
+        # bicopy Y Y2 Z
+    :l:7:
+    jz Z :l:8
+        dec Z
+        inc mult:1:Y2
+        inc fact:1:T
+    jmp :l:7
+    :l:8:
+        # rename Y2 Y
+    :l:9:
+    jz mult:1:Y2 :l:10
+        dec mult:1:Y2
+        inc Z
+    jmp :l:9
+    :l:10:
+    jmp :l:5
+    :l:6:
+        # zero Y
+    :l:11:
+    jz Z :l:12
+        dec Z
+    jmp :l:11
+    :l:12:
+        # rename T Y
+    :l:13:
+    jz fact:1:T :l:14
+        dec fact:1:T
+        inc Z
+    jmp :l:13
+    :l:14:
+        # rename X2 X
+    :l:15:
+    jz fact:1:X2 :l:16
+        dec fact:1:X2
+        inc X
+    jmp :l:15
+    :l:16:
+        dec X
+    jmp :l:1
+    :l:2:
+        ! X 5
 
 By using the S to Cratylus compiler (`s2cr.py` script), this in
 turn gets compiled to the following Cratylus program:
@@ -836,4 +839,286 @@ the `-v -t "{Z}" Z` command-line switch, we get our first example back:
     A => m.
     J.
     ? a^5H.
+
+Cratylus to C broken compiler
+-----------------------------
+
+The script `crc.py` compiles a Cratylus program in monomial form to a
+hopefully equivalent C program. The program may have a different behaviour
+in case of overflow, since the exponents in the target C program are
+limited to 32-bit integers (`unsigned long int`).
+
+The factorial program above gets compiled to the following C program:
+
+    #include <stdio.h>
+
+    #define VARS 39
+    unsigned long int v[VARS];
+
+    char *n[] = {
+        "Z", "a", "b", "c", "e", "d", "g", "f", "i", "h", "k",
+        "j", "m", "l", "A", "B", "o", "n", "q", "p", "s", "r",
+        "u", "t", "w", "v", "y", "x", "z", "C", "E", "D", "G",
+        "F", "I", "H", "K", "J", "L",
+    };
+
+    int main()
+    {
+        int i;
+
+        /* Initialize */
+        for (i = 0; i < VARS; i++) {
+            v[i] = 0;
+        }
+
+        /* Goal: ? a^5H */
+        v[1] += 5;
+        v[35] += 1;
+
+        while (1) {
+            if (0) {
+            } else if (v[35] >= 1) {
+                /* H => mZ */
+                v[35] -= 1;
+                v[12] += 1;
+                v[0] += 1;
+            } else if (v[1] >= 1 && v[12] >= 1) {
+                /* am => af */
+                v[1] -= 1;
+                v[12] -= 1;
+                v[1] += 1;
+                v[7] += 1;
+            } else if (v[12] >= 1) {
+                /* m => J */
+                v[12] -= 1;
+                v[37] += 1;
+            } else if (v[1] >= 1 && v[7] >= 1) {
+                /* af => aB */
+                v[1] -= 1;
+                v[7] -= 1;
+                v[1] += 1;
+                v[15] += 1;
+            } else if (v[7] >= 1) {
+                /* f => k */
+                v[7] -= 1;
+                v[10] += 1;
+            } else if (v[1] >= 1 && v[15] >= 1) {
+                /* aB => u */
+                v[1] -= 1;
+                v[15] -= 1;
+                v[22] += 1;
+            } else if (v[15] >= 1) {
+                /* B => u */
+                v[15] -= 1;
+                v[22] += 1;
+            } else if (v[22] >= 1) {
+                /* u => cL */
+                v[22] -= 1;
+                v[3] += 1;
+                v[38] += 1;
+            } else if (v[38] >= 1) {
+                /* L => eG */
+                v[38] -= 1;
+                v[4] += 1;
+                v[32] += 1;
+            } else if (v[32] >= 1) {
+                /* G => f */
+                v[32] -= 1;
+                v[7] += 1;
+            } else if (v[3] >= 1 && v[10] >= 1) {
+                /* ck => cr */
+                v[3] -= 1;
+                v[10] -= 1;
+                v[3] += 1;
+                v[21] += 1;
+            } else if (v[10] >= 1) {
+                /* k => d */
+                v[10] -= 1;
+                v[5] += 1;
+            } else if (v[3] >= 1 && v[21] >= 1) {
+                /* cr => b */
+                v[3] -= 1;
+                v[21] -= 1;
+                v[2] += 1;
+            } else if (v[21] >= 1) {
+                /* r => b */
+                v[21] -= 1;
+                v[2] += 1;
+            } else if (v[2] >= 1 && v[0] >= 1) {
+                /* bZ => yZ */
+                v[2] -= 1;
+                v[0] -= 1;
+                v[26] += 1;
+                v[0] += 1;
+            } else if (v[2] >= 1) {
+                /* b => j */
+                v[2] -= 1;
+                v[11] += 1;
+            } else if (v[26] >= 1 && v[0] >= 1) {
+                /* yZ => t */
+                v[26] -= 1;
+                v[0] -= 1;
+                v[23] += 1;
+            } else if (v[26] >= 1) {
+                /* y => t */
+                v[26] -= 1;
+                v[23] += 1;
+            } else if (v[23] >= 1) {
+                /* t => iK */
+                v[23] -= 1;
+                v[8] += 1;
+                v[36] += 1;
+            } else if (v[36] >= 1) {
+                /* K => lE */
+                v[36] -= 1;
+                v[13] += 1;
+                v[30] += 1;
+            } else if (v[30] >= 1) {
+                /* E => b */
+                v[30] -= 1;
+                v[2] += 1;
+            } else if (v[8] >= 1 && v[11] >= 1) {
+                /* ij => is */
+                v[8] -= 1;
+                v[11] -= 1;
+                v[8] += 1;
+                v[20] += 1;
+            } else if (v[11] >= 1) {
+                /* j => I */
+                v[11] -= 1;
+                v[34] += 1;
+            } else if (v[8] >= 1 && v[20] >= 1) {
+                /* is => x */
+                v[8] -= 1;
+                v[20] -= 1;
+                v[27] += 1;
+            } else if (v[20] >= 1) {
+                /* s => x */
+                v[20] -= 1;
+                v[27] += 1;
+            } else if (v[27] >= 1) {
+                /* x => DZ */
+                v[27] -= 1;
+                v[31] += 1;
+                v[0] += 1;
+            } else if (v[31] >= 1) {
+                /* D => j */
+                v[31] -= 1;
+                v[11] += 1;
+            } else if (v[34] >= 1) {
+                /* I => k */
+                v[34] -= 1;
+                v[10] += 1;
+            } else if (v[5] >= 1 && v[0] >= 1) {
+                /* dZ => wZ */
+                v[5] -= 1;
+                v[0] -= 1;
+                v[24] += 1;
+                v[0] += 1;
+            } else if (v[5] >= 1) {
+                /* d => h */
+                v[5] -= 1;
+                v[9] += 1;
+            } else if (v[24] >= 1 && v[0] >= 1) {
+                /* wZ => o */
+                v[24] -= 1;
+                v[0] -= 1;
+                v[16] += 1;
+            } else if (v[24] >= 1) {
+                /* w => o */
+                v[24] -= 1;
+                v[16] += 1;
+            } else if (v[16] >= 1) {
+                /* o => d */
+                v[16] -= 1;
+                v[5] += 1;
+            } else if (v[9] >= 1 && v[13] >= 1) {
+                /* hl => lp */
+                v[9] -= 1;
+                v[13] -= 1;
+                v[13] += 1;
+                v[19] += 1;
+            } else if (v[9] >= 1) {
+                /* h => g */
+                v[9] -= 1;
+                v[6] += 1;
+            } else if (v[13] >= 1 && v[19] >= 1) {
+                /* lp => v */
+                v[13] -= 1;
+                v[19] -= 1;
+                v[25] += 1;
+            } else if (v[19] >= 1) {
+                /* p => v */
+                v[19] -= 1;
+                v[25] += 1;
+            } else if (v[25] >= 1) {
+                /* v => CZ */
+                v[25] -= 1;
+                v[29] += 1;
+                v[0] += 1;
+            } else if (v[29] >= 1) {
+                /* C => h */
+                v[29] -= 1;
+                v[9] += 1;
+            } else if (v[4] >= 1 && v[6] >= 1) {
+                /* eg => en */
+                v[4] -= 1;
+                v[6] -= 1;
+                v[4] += 1;
+                v[17] += 1;
+            } else if (v[6] >= 1) {
+                /* g => q */
+                v[6] -= 1;
+                v[18] += 1;
+            } else if (v[4] >= 1 && v[17] >= 1) {
+                /* en => z */
+                v[4] -= 1;
+                v[17] -= 1;
+                v[28] += 1;
+            } else if (v[17] >= 1) {
+                /* n => z */
+                v[17] -= 1;
+                v[28] += 1;
+            } else if (v[28] >= 1) {
+                /* z => aF */
+                v[28] -= 1;
+                v[1] += 1;
+                v[33] += 1;
+            } else if (v[33] >= 1) {
+                /* F => g */
+                v[33] -= 1;
+                v[6] += 1;
+            } else if (v[1] >= 1 && v[18] >= 1) {
+                /* aq => A */
+                v[1] -= 1;
+                v[18] -= 1;
+                v[14] += 1;
+            } else if (v[18] >= 1) {
+                /* q => A */
+                v[18] -= 1;
+                v[14] += 1;
+            } else if (v[14] >= 1) {
+                /* A => m */
+                v[14] -= 1;
+                v[12] += 1;
+            } else if (v[37] >= 1) {
+                /* J */
+                v[37] -= 1;
+            } else {
+                break;
+            }
+        }
+
+        for (i = 0; i < VARS; i++) {
+            if (v[i] > 0) {
+                printf("%s", n[i]);
+                if (v[i] > 1) {
+                    printf("^%lu", v[i]);
+                }
+            }
+        }
+        printf("\n");
+
+        return 0;
+    }
 
