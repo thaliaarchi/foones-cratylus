@@ -145,10 +145,10 @@ def compile_control(control_type, instr, subroutines, env, prefix):
 
     if control_type.startswith('WHILE'):
         result.append('%s:' % (lstart,))
-    result.append('%s %s %s' % (jump, var, lend))
+    result.append('    %s %s %s' % (jump, var, lend))
     result.extend(compile_body(instr.body, subroutines, env, prefix))
     if control_type.startswith('WHILE'):
-        result.append('jmp %s' % (lstart))
+        result.append('    jmp %s' % (lstart))
     result.append('%s:' % (lend,))
     return result
 
