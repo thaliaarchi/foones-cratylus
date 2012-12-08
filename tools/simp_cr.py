@@ -9,17 +9,14 @@ import cratylus
 class SimpCrException(Exception):
     pass
 
-def translate(filename, translation, contents):
+def translate(filename, translation, contents, initial_table):
     if translation == 'normalize':
         return normalize_program(filename, contents)
     else:
-        return translate_program(filename, contents, translation)
+        return translate_program(filename, contents, translation, initial_table)
 
 def normalize_program(filename, program):
     return repr(cratylus.parse_program(program, filename))
-
-def translate_monomial(poly):
-    print poly.coefficients()
 
 def is_prime(p):
     for d in range(2, p):
@@ -84,14 +81,18 @@ def irreducible_elements(n, translation_type):
     else:
         assert False
 
-def translate_monomial(table, monomial):
+def translate_monomial(table, monomial, initial_table):
     key, coef = monomial.coefficients().items()[0]
     res = cratylus.poly_from_constant(1)
     for var, power in key:
-        res = res * table.get(var, var) ** power
+        if var in table:
+            res = res * table[var] ** power
+        else:
+            assert var in initial_table
+            res = res * initial_table[var] ** power
     return res
 
-def translate_program(filename, program, translation_type):
+def translate_program(filename, program, translation_type, initial_table):
     program = cratylus.parse_program(program, filename)
 
     # Collect all polynomials
@@ -112,7 +113,8 @@ def translate_program(filename, program, translation_type):
         if coef != 1:
             raise SimpCrException('"%s" is not in monomial form (coeff should be 1)' % (poly,))
         for var, power in key:
-            var_count[var] = var_count.get(var, 0) + 1
+            if var not in initial_table:
+                var_count[var] = var_count.get(var, 0) + 1
 
     # Build translation table
     num_vars = len(var_count) # number of distinct variables
@@ -122,7 +124,7 @@ def translate_program(filename, program, translation_type):
     table = dict(zip(old_vars, new_vars))
 
     comment = []
-    for old, new in sorted(table.items()):
+    for old, new in sorted(table.items() + initial_table.items()):
         msg = '# %s --> %s' % (old, new) 
         comment.append(msg)
 
@@ -130,11 +132,11 @@ def translate_program(filename, program, translation_type):
     rules2 = []
     for rule in program.rules:
         if rule.is_goal():
-            r = cratylus.Goal([translate_monomial(table, m) for m in rule.clause])
+            r = cratylus.Goal([translate_monomial(table, m, initial_table) for m in rule.clause])
         else:
             r = cratylus.Rule(
-                    translate_monomial(table, rule.head),
-                    [translate_monomial(table, m) for m in rule.clause])
+                    translate_monomial(table, rule.head, initial_table),
+                    [translate_monomial(table, m, initial_table) for m in rule.clause])
         rules2.append(r)
 
     return '\n'.join(comment) + '\n\n' + repr(cratylus.Program(rules2))
@@ -148,13 +150,16 @@ def usage():
     sys.stderr.write('    -o <outfile.cr>   write the results in <outfile>\n')
     sys.stderr.write('    -f                translate a monomial form program to FRACTRAN\n')
     sys.stderr.write('    -u                translate a monomial form program to univariate polynomials\n')
-    sys.stderr.write('    -v                compact variable names\n')
+    sys.stderr.write('    -v                translate a monomial form program compacting variable names\n')
+    sys.stderr.write('    -t var poly       translate the variable to the given polynomial\n')
     sys.exit(1)
 
 if __name__ == '__main__':
 
     args = []
     translation = 'normalize'
+    initial_table = {}
+    
     outfile = None
     i = 1
     while i < len(sys.argv):
@@ -173,6 +178,14 @@ if __name__ == '__main__':
                 usage()
             outfile = sys.argv[i]
             i += 1
+        elif sys.argv[i] == '-t':
+            if i + 2 >= len(sys.argv):
+                usage()
+            i += 1
+            var = sys.argv[i]
+            poly = cratylus.poly_from_string(sys.argv[i + 1])
+            i += 2
+            initial_table[var] = poly
         else:
             args.append(sys.argv[i])
             i += 1
@@ -188,7 +201,7 @@ if __name__ == '__main__':
     contents = f.read()
     f.close()
 
-    result = translate(in_file, translation, contents)
+    result = translate(in_file, translation, contents, initial_table)
 
     print result
     if outfile is not None:
