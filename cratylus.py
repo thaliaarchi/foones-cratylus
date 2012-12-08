@@ -540,7 +540,7 @@ def run_goal(rules, goal):
                     print 40 * '-'
                     print 'Current goal : %s' % (goal,)
                     print 'Applying rule: %s' % (rule,)
-                    print '%s = (%s) * (%s)' % (goal, rule.head, q)
+                    print 'Factorization: %s = (%s) * (%s)' % (goal, rule.head, q)
 
                 goal = q
                 for p in rule.clause:
