@@ -71,6 +71,12 @@ def mangle(prefix, name):
     else:
         return '%s:%s' % (prefix, name)
 
+LABEL_COUNT = 0
+def make_label(prefix):
+    global LABEL_COUNT
+    LABEL_COUNT += 1
+    return ':l:%u' % (LABEL_COUNT,)
+
 def ss_tree(program):
     re.sub('[ \t]+', ' ', program)
     lines = program.split('\n')
@@ -111,21 +117,51 @@ def collect_subroutines(body, subroutines):
                 raise SS2SException('subroutine declaration should have a name')
             subroutines[instr.head[1]] = Sub(instr.head[1], instr.head[2:], instr.body)
 
+def env_expand1(env, prefix, name):
+    if name in env:
+        return env[name]
+    else:
+        return mangle(prefix, name)
+
 def env_expand(env, prefix, names):
     res = []
     for name in names:
-        if name in env:
-            res.append(env[name])
-        else:
-            res.append(mangle(prefix, name))
+        res.append(env_expand1(env, prefix, name))
     return res
+
+def compile_control(control_type, instr, subroutines, env, prefix):
+    if len(instr.head) != 2:
+        raise SUB('macro "%s" expects an argument' % (control_type,))
+
+    result = []
+    var = env_expand1(env, prefix, instr.head[1])
+    lstart = make_label(prefix)
+    lend = make_label(prefix)
+
+    if control_type.endswith('NZ'):
+        jump = 'jz'
+    else:
+        jump = 'jnz'
+
+    if control_type.startswith('WHILE'):
+        result.append('%s:' % (lstart,))
+    result.append('%s %s %s' % (jump, var, lend))
+    result.extend(compile_body(instr.body, subroutines, env, prefix))
+    if control_type.startswith('WHILE'):
+        result.append('jmp %s' % (lstart))
+    result.append('%s:' % (lend,))
+    return result
 
 def compile_body(body, subroutines, env, prefix):
     result = []
     for instr in body:
         if instr.is_macro():
-            if instr.head[0] != 'SUB':
-                assert not 'not implemented'
+            if instr.head[0] == 'SUB':
+                pass
+            elif instr.head[0] in ['IFZ', 'IFNZ', 'WHILEZ', 'WHILENZ']:
+                result.extend(compile_control(instr.head[0], instr, subroutines, env, prefix))
+            else:
+                raise SUB('macro "%s" not implemented' % (instr.head[0]))
         else:
             if instr.op[0][-1] == ':':
                 label = instr.op[0][:-1]

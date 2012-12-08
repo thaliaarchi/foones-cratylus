@@ -26,6 +26,27 @@ Given a polynomial `P`, let `i` be the least index such that `Ri` divides `P`,
 that is, `P = Ri Q`. Then `P` gets rewritten as `Si Q`.
 If there is no such index, `P` is in normal form.
 
+Hopefully interesting examples
+------------------------------
+
+This Cratylus program computes factorials:
+
+    H=>mZ.am=>af.m=>J.af=>aB.f=>k.aB=>u.B=>u.u=>cL.L=>eG.G=>f.
+    ck=>cr.k=>d.cr=>b.r=>b.bZ=>yZ.b=>j.yZ=>t.y=>t.t=>iK.K=>lE.
+    E=>b.ij=>is.j=>I.is=>x.s=>x.x=>DZ.D=>j.I=>k.dZ=>wZ.d=>h.
+    wZ=>o.w=>o.o=>d.hl=>lp.h=>g.lp=>v.p=>v.v=>CZ.C=>h.eg=>en.
+    g=>q.en=>z.n=>z.z=>aF.F=>g.aq=>A.q=>A.A=>m.J.
+
+For instance, interacting with the Cratylus toplevel:
+
+    ? H a^5
+    Z^120
+
+    ? H a^7
+
+Bear in mind the second query takes a *really* long time to arrive
+to the answer.
+
 Turing completeness
 -------------------
 
@@ -170,7 +191,7 @@ When the following program is loaded:
 
     ? a x^3 y^2.
 
-Final result:
+Cratylus displays the following final result:
 
     z^5 
 
@@ -549,4 +570,247 @@ Notice that the query `425000000000` is equivalent to
     6045127530961181628652411227196693490382260383969108811846856679868932815922570165203117478978324258618429876174558448218719550835202670830699753771294118292547613370699765040813403
 
 which is exactly `67^99`.
+
+S-with-macros to S compiler
+---------------------------
+
+Also part of the Cratylus distribution is the script `ss2s.py` which
+translates an S program with macros to a regular S program.
+
+An S program with macros allows defining subroutines with parameters,
+and using some basic control constructs (if and while), besides
+allowing labels, `inc`, `dec`, `jmp`, `jz` and `jnz`.
+The grammar of S-with-macros is a superset of that of S:
+
+    <program> ::= <instructions> <init>
+
+    <instructions> ::= <EMPTY>
+                     | <sub> \n <instructions>
+                     | <label>: \n <instructions>
+                     | <op> \n <instructions>
+
+    <op> ::= inc <var>
+           | dec <var>
+           | jmp <label>
+           | jz <var> <label>
+           | jnz <var> <label>
+           | <sub_name> <var1> ... <varN>
+           | WHILEZ var \n <instructions> \n END
+           | WHILENZ var \n <instructions> \n END
+           | IFZ var \n <instructions> \n END
+           | IFNZ var \n <instructions> \n END
+
+    <sub> ::= SUB <sub_name> <var1> ... <varN> \n <instructions> \n END
+
+    <init> ::= <EMPTY>
+              | ! <var> <num> <init>
+
+For instance, the following S-with-macros program calculates factorials:
+
+    SUB rename X Y
+        WHILENZ X
+            dec X
+            inc Y
+        END
+    END
+
+    SUB bicopy X Y Z
+        WHILENZ X
+            dec X
+            inc Y
+            inc Z
+        END
+    END
+
+    SUB zero X
+        WHILENZ X
+            dec X
+        END
+    END
+
+    SUB mult X Y Z
+        WHILENZ X 
+            dec X
+            bicopy Y Y2 Z
+            rename Y2 Y
+        END
+        zero Y
+    END
+
+    SUB fact X Y
+        inc Y
+        WHILENZ X
+            bicopy X X1 X2
+            mult X1 Y T
+            rename T Y
+            rename X2 X
+            dec X
+        END
+    END
+
+    fact X Z
+
+    ! X 5
+
+The `ss2s.py` script translates the S-with-macros program to the
+following plain S program:
+
+        # fact X Z
+        inc Z
+    :l:1:
+    jz X :l:2
+        # bicopy X X1 X2
+    :l:3:
+    jz X :l:4
+        dec X
+        inc fact:1:X1
+        inc fact:1:X2
+    jmp :l:3
+    :l:4:
+        # mult X1 Y T
+    :l:5:
+    jz fact:1:X1 :l:6
+        dec fact:1:X1
+        # bicopy Y Y2 Z
+    :l:7:
+    jz Z :l:8
+        dec Z
+        inc mult:1:Y2
+        inc fact:1:T
+    jmp :l:7
+    :l:8:
+        # rename Y2 Y
+    :l:9:
+    jz mult:1:Y2 :l:10
+        dec mult:1:Y2
+        inc Z
+    jmp :l:9
+    :l:10:
+    jmp :l:5
+    :l:6:
+        # zero Y
+    :l:11:
+    jz Z :l:12
+        dec Z
+    jmp :l:11
+    :l:12:
+        # rename T Y
+    :l:13:
+    jz fact:1:T :l:14
+        dec fact:1:T
+        inc Z
+    jmp :l:13
+    :l:14:
+        # rename X2 X
+    :l:15:
+    jz fact:1:X2 :l:16
+        dec fact:1:X2
+
+By using the S to Cratylus compiler (`s2cr.py` script), this in
+turn gets compiled to the following Cratylus program:
+
+    {0} => {1}{Z}.
+    {1}{X} => {2}{X}.
+    {1} => {32}.
+    {2}{X} => {3}{X}.
+    {2} => {7}.
+    {3}{X} => {4}.
+    {3} => {4}.
+    {4} => {5}{fact:1:X1}.
+    {5} => {6}{fact:1:X2}.
+    {6} => {2}.
+    {7}{fact:1:X1} => {8}{fact:1:X1}.
+    {7} => {19}.
+    {8}{fact:1:X1} => {9}.
+    {8} => {9}.
+    {9}{Z} => {10}{Z}.
+    {9} => {14}.
+    {10}{Z} => {11}.
+    {10} => {11}.
+    {11} => {12}{mult:1:Y2}.
+    {12} => {13}{fact:1:T}.
+    {13} => {9}.
+    {14}{mult:1:Y2} => {15}{mult:1:Y2}.
+    {14} => {18}.
+    {15}{mult:1:Y2} => {16}.
+    {15} => {16}.
+    {16} => {17}{Z}.
+    {17} => {14}.
+    {18} => {7}.
+    {19}{Z} => {20}{Z}.
+    {19} => {22}.
+    {20}{Z} => {21}.
+    {20} => {21}.
+    {21} => {19}.
+    {22}{fact:1:T} => {23}{fact:1:T}.
+    {22} => {26}.
+    {23}{fact:1:T} => {24}.
+    {23} => {24}.
+    {24} => {25}{Z}.
+    {25} => {22}.
+    {26}{fact:1:X2} => {27}{fact:1:X2}.
+    {26} => {30}.
+    {27}{fact:1:X2} => {28}.
+    {27} => {28}.
+    {28} => {29}{X}.
+    {29} => {26}.
+    {30}{X} => {31}.
+    {30} => {31}.
+    {31} => {1}.
+    {32}.
+    ? {0}{X}^5.
+
+Finally, by using the Cratylus simplifier (script `simp_cr.py` with
+the `-v -t "{Z}" Z` command-line switch, we get our first example back:
+
+    H => mZ.
+    am => af.
+    m => J.
+    af => aB.
+    f => k.
+    aB => u.
+    B => u.
+    u => cL.
+    L => eG.
+    G => f.
+    ck => cr.
+    k => d.
+    cr => b.
+    r => b.
+    bZ => yZ.
+    b => j.
+    yZ => t.
+    y => t.
+    t => iK.
+    K => lE.
+    E => b.
+    ij => is.
+    j => I.
+    is => x.
+    s => x.
+    x => DZ.
+    D => j.
+    I => k.
+    dZ => wZ.
+    d => h.
+    wZ => o.
+    w => o.
+    o => d.
+    hl => lp.
+    h => g.
+    lp => v.
+    p => v.
+    v => CZ.
+    C => h.
+    eg => en.
+    g => q.
+    en => z.
+    n => z.
+    z => aF.
+    F => g.
+    aq => A.
+    q => A.
+    A => m.
+    J.
+    ? a^5H.
 

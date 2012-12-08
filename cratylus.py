@@ -53,7 +53,12 @@ def modulo(x):
         return x % OPTIONS['modulo']
 
 def normalize_key(k):
-    return tuple(sorted([(v, p) for (v, p) in k if p != 0]))
+    def lower(v):
+        if v.lower() == v:
+            return 0
+        else:
+            return 1
+    return tuple(sorted([(v, p) for (v, p) in k if p != 0], key=lambda (v, p): (lower(v), v)))
 
 def cmp_keys(k1, k2):
     all_vars = {}
