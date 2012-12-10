@@ -972,7 +972,7 @@ Cratylus to C compiler
 -----------------------------
 
 The script `crc.py` compiles a Cratylus program in monomial form to an
-equivalent C program. The GNU Multiprecision Library is used to represent
+equivalent C program. The GNU Multiple Precision Library is used to represent
 polynomial exponents.
 
 The factorial program above gets compiled to the following C program:
