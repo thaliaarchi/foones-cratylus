@@ -79,7 +79,7 @@ def crc_inc_dec_maximal(rule, table, indent=''):
 
     right_vars = {}
     for m in rule.clause:
-        for v in rule.head.vars_with_maximal_power():
+        for v in m.vars_with_maximal_power():
             right_vars[v] = 1
     right_vars = right_vars.keys()
 
