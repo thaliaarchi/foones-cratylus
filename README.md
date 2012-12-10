@@ -61,6 +61,21 @@ of the numbers involved. By using the Cratylus to C broken
 compiler, one can speed up the constant factors to compute up to
 the factorial of 10 (`Z^3628800`) in a few seconds.
 
+Although there seems to be no way of improving the algorithm
+to carry out additions other than in unary, it is still possible
+to adapt it to behave linearly up to a "big" number.
+In unary one knows that "1 + 1 = 2". The key to speed up the
+process is also acknowledging the facts that "10 + 10 = 20",
+"100 + 100 = 200", etc.
+If one could represent those facts for arbitrary powers of 10,
+the program would effectively perform additions in a linear
+number of steps. Unfortunately, Cratylus is not expressive enough
+for us to be able to state that equations in general, but only
+up to a given fixed number.
+For example, one could write a version of factorial improved to work
+"fast" up to 64-bit integers. See
+[the code](https://github.com/foones/cratylus/blob/master/examples/fast_factorial.compact.cr).
+
 The following Cratylus program is able to calculate the n-th prime
 number. The main goal, `? BcE^20.`, queries for the 20-th prime number:
 
