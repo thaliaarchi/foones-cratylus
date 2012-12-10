@@ -42,5 +42,5 @@ END
 
 fact X Z
 
-! X 5
+! X 20
 
