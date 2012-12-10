@@ -417,6 +417,7 @@ def uni_crc(program):
     prog.append('\tcopy_poly(p[6], g);\n')
     prog.append('\tnf = 0;\n')
     prog.append('\twhile (!nf) {\n')
+    prog.append('\t\tshow_poly(p[6]);\n')
     prog.append('\t\tnf = 1;\n')
     prog.append('\t\tfor (i = 0; i < NRULES; i++) {\n')
     prog.append('\t\t\tcopy_poly(p[0], p[6]);\n')

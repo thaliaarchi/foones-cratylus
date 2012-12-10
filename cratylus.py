@@ -232,6 +232,30 @@ class Poly(object):
         return res
 
     def __repr__(self):
+        return self.repr_normal()
+
+    def repr_compact(self, compact=True):
+        if not self.is_univariate('x') or self._modulo != 2 or not compact:
+            return self.repr_normal()
+
+        max_power = 0
+        for k in lexisorted(self._coeffs.keys()):
+            if k == ():
+                power = 0
+            else:
+                _, power = k[0]
+            max_power = max(power, max_power)
+
+        res = ['0' for i in range(max_power + 1)]
+        for k in lexisorted(self._coeffs.keys()):
+            if k == ():
+                power = 0
+            else:
+                _, power = k[0]
+            res[power] = str(self._coeffs[k])
+        return '|%s|' % (''.join(reversed(res)),)
+
+    def repr_normal(self):
         res = []
         fst = True
         for k in lexisorted(self._coeffs.keys()):
@@ -499,10 +523,13 @@ class Rule(object):
         self.clause = clause
 
     def __repr__(self):
+        return self.repr_compact(compact=False)
+
+    def repr_compact(self, compact=True):
         if self.clause == []:
-            return '%s' % (self.head,)
+            return '%s' % (self.head.repr_compact(compact),)
         else:
-            return '%s => %s' % (self.head, ', '.join([repr(x) for x in self.clause]))
+            return '%s => %s' % (self.head.repr_compact(compact), ', '.join([x.repr_compact(compact) for x in self.clause]))
 
     def is_goal(self):
         return False
@@ -513,7 +540,10 @@ class Goal(object):
         self.clause = clause
 
     def __repr__(self):
-        return '? %s' % (', '.join([repr(x) for x in self.clause]),)
+        return self.repr_compact(compact=False)
+
+    def repr_compact(self, compact=True):
+        return '? %s' % (', '.join([x.repr_compact(compact) for x in self.clause]),)
 
     def is_goal(self):
         return True
@@ -524,7 +554,10 @@ class Program(object):
         self.rules = rules
 
     def __repr__(self):
-        return '\n'.join(['%s.' % (x,) for x in self.rules])
+        return self.repr_compact(compact=False)
+
+    def repr_compact(self, compact=True):
+        return '\n'.join(['%s.' % (r.repr_compact(compact),) for r in self.rules])
 
 def parse_rule(tokens, i, modulo=0):
     i, head = parse_polynomial(tokens, i, modulo=modulo)
@@ -597,6 +630,11 @@ def load_program(string, filename='...', modulo=0):
 def load_program_from_file(filename, modulo=0):
     if not OPTIONS['script']:
         sys.stderr.write('! Loading file "%s"\n' % (filename,))
+
+    if filename.endswith('.cr2'):
+        if modulo != 2 and not OPTIONS['script']:
+            sys.stderr.write('! Warning: forcing coefficients in Z_2\n')
+        modulo = 2
 
     try:
         f = file(filename, 'r')
@@ -694,11 +732,6 @@ if __name__ == '__main__':
     try:
         if not OPTIONS['script']:
             banner()
-
-        if args[0].endswith('.cr2'):
-            if not OPTIONS['script']:
-                sys.stderr.write('! Coefficients in Z_2.\n')
-            OPTIONS['modulo'] = 2
 
         rules = load_program_from_file(args[0], modulo=OPTIONS['modulo'])
         if not OPTIONS['script']:

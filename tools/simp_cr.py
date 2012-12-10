@@ -6,6 +6,12 @@ import string
 
 import cratylus
 
+OPTIONS = {
+  'source_modulo': 0,
+  'target_modulo': 0,
+  'compact': True,
+}
+
 class SimpCrException(Exception):
     pass
 
@@ -16,7 +22,9 @@ def translate(filename, translation, contents, initial_table):
         return translate_program(filename, contents, translation, initial_table)
 
 def normalize_program(filename, program):
-    return repr(cratylus.parse_program(program, filename))
+    return repr(cratylus.parse_program(program, filename, modulo=OPTIONS['source_modulo']))
+
+########################################
 
 def is_prime(p):
     for d in range(2, p):
@@ -35,14 +43,50 @@ def gen_primes(n):
         p += 1
     return primes
 
-def gen_irreducible_polys(n):
+########################################
+
+def gen_irreducible_Z_polys(n):
     polys = [] 
     for i in range(n):
         k = i // 2 + 1
         if i % 2 == 1:
             k = -k
-        polys.append(cratylus.poly_from_var('x') + cratylus.poly_from_constant(k))
+        polys.append(cratylus.poly_from_var('x', modulo=0) + cratylus.poly_from_constant(k, modulo=0))
     return polys
+
+########################################
+
+def gen_all_Zk_coefs_of_length(length, k):
+    if length == 0:
+        yield []
+    else:
+        for c in range(k):
+            for cs in gen_all_Zk_coefs_of_length(length - 1, k):
+                yield [c] + cs
+
+def gen_all_Zk_coefs(k, from_length=0):
+    length = from_length
+    while True:
+        for cs in gen_all_Zk_coefs_of_length(length, k):
+            if cs[-1] == 0:
+                continue
+            yield cs
+        length += 1
+
+def gen_irreducible_Zk_polys(n, k):
+    polys = []
+    for cs in gen_all_Zk_coefs(k=2, from_length=1):
+        if len(polys) == n:
+            break
+        p = cratylus.poly_from_coeffs([1] + cs, modulo=k)
+        for q in polys:
+            if (p % q).is_null():
+                break
+        else:
+            polys.append(p)
+    return polys
+
+########################################
 
 def alphanumeric_strings_of_length(length):
     if length == 0:
@@ -66,16 +110,20 @@ def gen_compact_vars(n):
     i = 0
     for x in alphanumeric_identifiers():
         if i == n: break
-        res.append(cratylus.poly_from_var(x))
+        res.append(cratylus.poly_from_var(x, modulo=0))
         i += 1
     return res
+
+########################################
 
 def irreducible_elements(n, translation_type):
     "Return n irreducible elements appropiate for the given translation type"
     if translation_type == 'fractran':
-        return [cratylus.poly_from_constant(p) for p in gen_primes(n)]
+        return [cratylus.poly_from_constant(p, modulo=0) for p in gen_primes(n)]
     elif translation_type == 'univariate':
-        return gen_irreducible_polys(n)
+        return gen_irreducible_Z_polys(n)
+    elif translation_type == 'binary':
+        return gen_irreducible_Zk_polys(n, k=2)
     elif translation_type == 'vars_compact':
         return gen_compact_vars(n)
     else:
@@ -83,7 +131,7 @@ def irreducible_elements(n, translation_type):
 
 def translate_monomial(table, monomial, initial_table):
     key, coef = monomial.coefficients().items()[0]
-    res = cratylus.poly_from_constant(1)
+    res = cratylus.poly_from_constant(1, OPTIONS['target_modulo'])
     for var, power in key:
         if var in table:
             res = res * table[var] ** power
@@ -93,7 +141,7 @@ def translate_monomial(table, monomial, initial_table):
     return res
 
 def translate_program(filename, program, translation_type, initial_table):
-    program = cratylus.parse_program(program, filename)
+    program = cratylus.parse_program(program, filename, modulo=OPTIONS['source_modulo'])
 
     # Collect all polynomials
     all_polys = []
@@ -125,7 +173,7 @@ def translate_program(filename, program, translation_type, initial_table):
 
     comment = []
     for old, new in sorted(table.items() + initial_table.items()):
-        msg = '# %s --> %s' % (old, new) 
+        msg = '# %s --> %s' % (old, new.repr_compact(OPTIONS['compact'])) 
         comment.append(msg)
 
     # Translate program
@@ -139,7 +187,7 @@ def translate_program(filename, program, translation_type, initial_table):
                     [translate_monomial(table, m, initial_table) for m in rule.clause])
         rules2.append(r)
 
-    return '\n'.join(comment) + '\n\n' + repr(cratylus.Program(rules2))
+    return '\n'.join(comment) + '\n\n' + cratylus.Program(rules2).repr_compact(OPTIONS['compact'])
 
 def usage():
     sys.stderr.write('Normalize or translate a Cratylus program.\n')
@@ -151,7 +199,9 @@ def usage():
     sys.stderr.write('    -f                translate a monomial form program to FRACTRAN\n')
     sys.stderr.write('    -u                translate a monomial form program to univariate polynomials\n')
     sys.stderr.write('    -v                translate a monomial form program compacting variable names\n')
+    sys.stderr.write('    -b                translate a monomial form program to univariate binary polynomial (i.e. in Z_2)\n')
     sys.stderr.write('    -t var poly       translate the variable to the given polynomial\n')
+    sys.stderr.write('    -nc               do not compact the format of the output\n')
     sys.exit(1)
 
 if __name__ == '__main__':
@@ -172,6 +222,10 @@ if __name__ == '__main__':
         elif sys.argv[i] == '-v':
             translation = 'vars_compact'
             i += 1
+        elif sys.argv[i] == '-b':
+            translation = 'binary'
+            OPTIONS['target_modulo'] = 2
+            i += 1
         elif sys.argv[i] == '-o':
             i += 1
             if i >= len(sys.argv):
@@ -183,9 +237,12 @@ if __name__ == '__main__':
                 usage()
             i += 1
             var = sys.argv[i]
-            poly = cratylus.poly_from_string(sys.argv[i + 1])
+            poly = sys.argv[i + 1]
             i += 2
             initial_table[var] = poly
+        elif sys.argv[i] == '-nc':
+            OPTIONS['compact'] = False
+            i += 1
         else:
             args.append(sys.argv[i])
             i += 1
@@ -195,7 +252,10 @@ if __name__ == '__main__':
 
     in_file = args[0]
     if in_file.endswith('.cr2'):
-        cratylus.OPTIONS['modulo'] = 2
+        cratylus.OPTIONS['source_modulo'] = 2
+
+    for k, v in initial_table.items():
+        initial_table[k] = cratylus.poly_from_string(v, modulo=OPTIONS['target_modulo'])
 
     f = file(in_file)
     contents = f.read()
