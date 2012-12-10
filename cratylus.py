@@ -380,7 +380,7 @@ def tokenize(s, filename='...', modulo=0):
                 name += s[i]
                 i += 1
             yield Token('VAR', name, Position(filename, s, b, i))
-        elif s[i] == '|':
+        elif s[i] == '|' and modulo == 2:
             b = i
             coeffs = []
             i += 1
@@ -633,7 +633,7 @@ def load_program_from_file(filename, modulo=0):
 
     if filename.endswith('.cr2'):
         if modulo != 2 and not OPTIONS['script']:
-            sys.stderr.write('! Warning: forcing coefficients in Z_2\n')
+            sys.stderr.write('! .cr2 file - forcing coefficients in Z_2\n')
         modulo = 2
 
     try:
