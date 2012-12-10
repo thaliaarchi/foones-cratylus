@@ -46,11 +46,11 @@ def is_numeric(x):
             return False
     return True
 
-def modulo(x):
-    if OPTIONS['modulo'] == 0:
+def normalize_modulo(x, modulo=0):
+    if modulo == 0:
         return x
     else: 
-        return x % OPTIONS['modulo']
+        return x % modulo
 
 def normalize_key(k):
     def lower(v):
@@ -80,31 +80,32 @@ def mul_keys(k1, k2):
         vp[v] = vp.get(v, 0) + p
     return normalize_key(vp.items())
 
-def poly_from_constant(k):
+def poly_from_constant(k, modulo=0):
     if k == 0:
-        return Poly({})
+        return Poly({}, modulo=modulo)
     else:
-        return Poly({(): k})
+        return Poly({(): k}, modulo=modulo)
 
-def poly_from_var(var, power=1):
-    return Poly({((var, power),): 1})
+def poly_from_var(var, power=1, modulo=0):
+    return Poly({((var, power),): 1}, modulo=modulo)
 
-def poly_from_coeffs(coeffs, var='x'):
+def poly_from_coeffs(coeffs, var='x', modulo=0):
     dic = {}
     power = 0
     for c in reversed(coeffs):
         dic[((var, power),)] = c
         power += 1
-    return Poly(dic)
+    return Poly(dic, modulo=modulo)
 
 class Poly(object):
 
     # coeffs is a mapping
     # ((var1, pow1), ..., (varN, powN)) -> coeff
-    def __init__(self, coeffs):
+    def __init__(self, coeffs, modulo=0):
+        self._modulo = modulo
         self._coeffs = {}
         for k, v in coeffs.items():
-            v = modulo(v)
+            v = normalize_modulo(v, self._modulo)
             if v == 0: continue
             nk = normalize_key(k)
             assert nk not in self._coeffs
@@ -114,7 +115,7 @@ class Poly(object):
         coeffs = {}
         for k, v in self._coeffs.items() + q._coeffs.items():
             coeffs[k] = coeffs.get(k, 0) + v
-        return Poly(coeffs)
+        return Poly(coeffs, modulo=self._modulo)
 
     def __mul__(self, q):
         coeffs = {}
@@ -122,10 +123,10 @@ class Poly(object):
             for k2, v2 in q._coeffs.items():
                 k = mul_keys(k1, k2)
                 coeffs[k] = coeffs.get(k, 0) + v1 * v2
-        return Poly(coeffs)
+        return Poly(coeffs, modulo=self._modulo)
 
     def __pow__(self, pw):
-        res = poly_from_constant(1)
+        res = poly_from_constant(1, modulo=self._modulo)
         acc = self
         while pw > 0:
             if pw % 2 == 1:
@@ -146,12 +147,12 @@ class Poly(object):
         coeffs = {}
         for k, v in self._coeffs.items():
             coeffs[k] = -v
-        return Poly(coeffs)
+        return Poly(coeffs, modulo=self._modulo)
 
     def div_mod(self, d):
         p = self
-        q = poly_from_constant(0)
-        r = poly_from_constant(0)
+        q = poly_from_constant(0, modulo=self._modulo)
+        r = poly_from_constant(0, modulo=self._modulo)
         d_leading = d.leading_monomial()
         while not p.is_null():
             p_leading = p.leading_monomial()
@@ -175,7 +176,7 @@ class Poly(object):
 
     def leading_monomial(self):
         k = lexisorted(self._coeffs.keys())[0]
-        return Poly({k: self._coeffs[k]})
+        return Poly({k: self._coeffs[k]}, modulo=self._modulo)
 
     def coefficients(self):
         return self._coeffs
@@ -226,7 +227,7 @@ class Poly(object):
             pow1 = k1.get(var, 0)
             res.append((var, pow2 - pow1))
 
-        res = Poly({tuple(res): c2 / c1})
+        res = Poly({tuple(res): c2 / c1}, modulo=self._modulo)
         assert self * res == monomial 
         return res
 
@@ -313,7 +314,7 @@ class Token(object):
     def __repr__(self):
         return '%s "%s"' % (self.type, self.value)
 
-def tokenize(s, filename='...'):
+def tokenize(s, filename='...', modulo=0):
     i = 0
     while i < len(s):
 
@@ -355,17 +356,17 @@ def tokenize(s, filename='...'):
                 name += s[i]
                 i += 1
             yield Token('VAR', name, Position(filename, s, b, i))
-        elif OPTIONS['modulo'] == 2 and s[i] == '|':
+        elif s[i] == '|':
             b = i
             coeffs = []
             i += 1
-            while i < len(s) and s[i] in '01':
+            while i < len(s) and s[i] in string.digits:
                 coeffs.append(int(s[i]))
                 i += 1
             if i >= len(s) or s[i] != '|':
                 raise CratylusException('Expected "|"', Position(filename, s, b, i))
             i += 1
-            yield Token('POLY', poly_from_coeffs(coeffs), Position(filename, s, b, i))
+            yield Token('POLY', poly_from_coeffs(coeffs, modulo=modulo), Position(filename, s, b, i))
         else:
             symbols = {
                 '+': 'ADDOP',
@@ -399,39 +400,39 @@ def parse_num(tokens, i=0):
     else:
         raise CratylusException('Parse error: expected a number: %s' % (tokens[i],), tokens[i].pos)
 
-def parse_atom(tokens, i=0):
+def parse_atom(tokens, i=0, modulo=0):
     if i >= len(tokens):
         raise CratylusException('Parse error', tokens[-1].pos)
 
     if tokens[i].type == 'VAR':
-        return i + 1, poly_from_var(tokens[i].value)
+        return i + 1, poly_from_var(tokens[i].value, modulo=modulo)
     elif tokens[i].type == 'NUM':
-        return i + 1, poly_from_constant(tokens[i].value)
+        return i + 1, poly_from_constant(tokens[i].value, modulo=modulo)
     elif tokens[i].type == 'POLY':
         return i + 1, tokens[i].value
     elif tokens[i].type == 'LPAREN':
-        j, res = parse_polynomial(tokens, i + 1)
+        j, res = parse_polynomial(tokens, i + 1, modulo=modulo)
         if tokens[j].type != 'RPAREN':
             raise CratylusException('Unbalanced paren', tokens[j].pos)
         return j + 1, res 
     else:
         raise CratylusException('Parse error: unexpected token found: %s' % (tokens[i],), tokens[i].pos)
 
-def parse_factor(tokens, i=0):
-    res = poly_from_constant(1)
+def parse_factor(tokens, i=0, modulo=0):
+    res = poly_from_constant(1, modulo=modulo)
     while i < len(tokens) and tokens[i].type not in ['MULOP', 'ADDOP'] + terminators():
-        i, a = parse_atom(tokens, i)
+        i, a = parse_atom(tokens, i, modulo=modulo)
         while i < len(tokens) and tokens[i].type in ['EXPOP']:
             i, p = parse_num(tokens, i + 1)
             a = a ** p
         res = res * a
     return i, res
 
-def parse_term(tokens, i=0):
-    res = poly_from_constant(1)
+def parse_term(tokens, i=0, modulo=0):
+    res = poly_from_constant(1, modulo=modulo)
     nextop = '*'
     while i < len(tokens) and tokens[i].type not in ['ADDOP'] + terminators():
-        i, a = parse_factor(tokens, i)
+        i, a = parse_factor(tokens, i, modulo=modulo)
 
         if nextop == '*':
             res = res * a
@@ -452,8 +453,8 @@ def parse_term(tokens, i=0):
 
     return i, res
 
-def parse_polynomial(tokens, i=0):
-    res = poly_from_constant(0)
+def parse_polynomial(tokens, i=0, modulo=0):
+    res = poly_from_constant(0, modulo=modulo)
 
     sign = '+'
     if i < len(tokens) and tokens[i].type in 'ADDOP':
@@ -461,7 +462,7 @@ def parse_polynomial(tokens, i=0):
         i += 1
 
     while i < len(tokens):
-        i, f = parse_term(tokens, i)
+        i, f = parse_term(tokens, i, modulo=modulo)
         if sign == '-':
             f = -f
         res = res + f
@@ -473,13 +474,13 @@ def parse_polynomial(tokens, i=0):
         i += 1
     return i, res
 
-def poly_from_string(string):
-    return parse_polynomial(list(tokenize(string)), 0)[1]
+def poly_from_string(string, modulo=0):
+    return parse_polynomial(list(tokenize(string, modulo=modulo)), i=0, modulo=modulo)[1]
 
-def parse_clause(tokens, i):
+def parse_clause(tokens, i, modulo=0):
     clause = []
     while i < len(tokens):
-        i, poly = parse_polynomial(tokens, i)
+        i, poly = parse_polynomial(tokens, i, modulo=modulo)
         clause.append(poly)
         if tokens[i].type == 'COMMA':
             i += 1
@@ -525,23 +526,23 @@ class Program(object):
     def __repr__(self):
         return '\n'.join(['%s.' % (x,) for x in self.rules])
 
-def parse_rule(tokens, i):
-    i, head = parse_polynomial(tokens, i)
+def parse_rule(tokens, i, modulo=0):
+    i, head = parse_polynomial(tokens, i, modulo=modulo)
     if tokens[i].type == 'PERIOD':
         return i + 1, Rule(head)
     elif tokens[i].type == 'THEN':
         i += 1
-        i, clause = parse_clause(tokens, i)
+        i, clause = parse_clause(tokens, i, modulo=modulo)
         return i, Rule(head, clause)
     else:
         raise CratylusException('Expected "=>" or "."', tokens[i].pos)
 
-def parse_goal(tokens, i):
-    i, clause = parse_clause(tokens, i)
+def parse_goal(tokens, i, modulo=0):
+    i, clause = parse_clause(tokens, i, modulo=modulo)
     return i, Goal(clause)
 
-def run_goal(rules, goal):
-    p0 = poly_from_constant(0)
+def run_goal(rules, goal, modulo=0):
+    p0 = poly_from_constant(0, modulo=modulo)
     while True:
         for rule in rules:
             q, r = goal.div_mod(rule.head)
@@ -568,39 +569,34 @@ def run_goal(rules, goal):
             print goal
             break
 
-def parse_program(string, filename='...'):
-    tokens = list(tokenize(string, filename))
+def parse_program(string, filename='...', modulo=0):
+    tokens = list(tokenize(string, filename, modulo=modulo))
     rules = []
     i = 0
     while i < len(tokens) and tokens[i].type != 'EOF':
         if tokens[i].type == 'QUERY':
             i += 1
-            i, goal = parse_goal(tokens, i)
+            i, goal = parse_goal(tokens, i, modulo=modulo)
             rules.append(goal)
         else:
-            i, rule = parse_rule(tokens, i)
+            i, rule = parse_rule(tokens, i, modulo=modulo)
             rules.append(rule)
     return Program(rules)
 
-def load_program(string, filename='...'):
-    program = parse_program(string, filename='...')
+def load_program(string, filename='...', modulo=0):
+    program = parse_program(string, filename='...', modulo=modulo)
     rules = []
     for p in program.rules:
         if p.is_goal():
             for goal in p.clause:
-                run_goal(rules, goal)
+                run_goal(rules, goal, modulo=modulo)
         else:
             rules.append(p)
     return rules
 
-def load_program_from_file(filename):
+def load_program_from_file(filename, modulo=0):
     if not OPTIONS['script']:
         sys.stderr.write('! Loading file "%s"\n' % (filename,))
-
-    if filename.endswith('.cr2'):
-        if not OPTIONS['script']:
-            sys.stderr.write('! Coefficients in Z_2.\n')
-        OPTIONS['modulo'] = 2
 
     try:
         f = file(filename, 'r')
@@ -608,7 +604,7 @@ def load_program_from_file(filename):
         raise CratylusException('Cannot open file \'%s\'' % (filename,))
     contents = f.read()
     f.close()
-    return load_program(contents, filename)
+    return load_program(contents, filename, modulo=modulo)
 
 def banner():
     sys.stderr.write(r"""
@@ -643,7 +639,7 @@ def cratylus_help():
     print '    help        displays this message'
     print '    exit        quit the Cratylus interpreter'
 
-def toplevel(rules):
+def toplevel(rules, modulo=0):
     while True:
         goal_string = raw_input('? ')
         if goal_string in ['bye', 'quit', 'exit']:
@@ -653,8 +649,8 @@ def toplevel(rules):
             cratylus_help()
             continue
         try:
-            goal = poly_from_string(goal_string)
-            run_goal(rules, goal)
+            goal = poly_from_string(goal_string, modulo=modulo)
+            run_goal(rules, goal, modulo=modulo)
         except CratylusException, e:
             print e
         except KeyboardInterrupt, e:
@@ -692,15 +688,21 @@ if __name__ == '__main__':
     if len(args) != 1:
         usage(exit=False)
         if not OPTIONS['script']:
-            toplevel([])
+            toplevel([], modulo=OPTIONS['modulo'])
         sys.exit(1)
 
     try:
         if not OPTIONS['script']:
             banner()
-        rules = load_program_from_file(args[0])
+
+        if args[0].endswith('.cr2'):
+            if not OPTIONS['script']:
+                sys.stderr.write('! Coefficients in Z_2.\n')
+            OPTIONS['modulo'] = 2
+
+        rules = load_program_from_file(args[0], modulo=OPTIONS['modulo'])
         if not OPTIONS['script']:
-            toplevel(rules)
+            toplevel(rules, OPTIONS['modulo'])
 
     except CratylusException, e:
         sys.stderr.write('%s: %s\n' % (PROMPT, e,))

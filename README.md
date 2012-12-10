@@ -107,7 +107,7 @@ calculates factorials:
 	x + 11 => x^2 - 17x - 38.
 	x - 19 => x^2 + 20x + 51.
 	x + 17 => x - 3.
-	x^2 + 8x + 12 => x^2 - 7x - 18.
+	x^2 + 8,x + 12 => x^2 - 7x - 18.
 	x + 6 => x - 2.
 	x^2 - 7x - 18 => x - 1.
 	x - 9 => x - 1.
@@ -147,14 +147,18 @@ calculates factorials:
 	x + 14 => x + 7.
 	x - 18.
 
-For reasons not so evident to me, this version is orders
-of magnitude slower. For instance, on the following input:
+For instance, on the following input:
 
 	? (x - 17) (x + 1)^3
 
-it calculates 3!
+it calculates 3! = 6:
 
 	x^6
+
+For reasons not so evident to me, this version is orders
+of magnitude slower. This probably relates with the fact
+that polynomial multiplication and division take quadratic
+time on the degree.
 
 Even though, superficially, our two factorial programs are
 very different, in essence they are exactly the same program.
@@ -208,7 +212,8 @@ Since FRACTRAN is Turing complete, also is Cratylus.
 
 Moreover, as part of the Cratylus distribution, the script `s2cr.py`
 translates a program in the (theoretical) programming language S, which
-is well-known to be Turing complete, into a Cratylus program.
+is well-known to be Turing complete, into a Cratylus program, which
+again shows Cratylus' completeness.
 See below for details.
 
 Syntax for polynomials
