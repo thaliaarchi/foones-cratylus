@@ -5,8 +5,8 @@ import re
 MAX_BITS = 64
 UNROLL_BITS = 4
 
-def range_of_bits():
-    return [2 ** x for x in reversed(range(0, MAX_BITS, UNROLL_BITS))]
+def range_of_bits(lower=0, upper=MAX_BITS):
+    return [2 ** x for x in reversed(range(lower, upper, UNROLL_BITS))]
 
 class S2CrException(Exception):
     pass
@@ -63,7 +63,7 @@ def s_to_cratylus(string):
         if op[0] in ['inc', 'dec', 'jmp', 'goto', 'xzero'] and len(op) != 2:
             raise S2CrException('operation "%s" takes exactly one argument' % (op[0],))
 
-        if op[0] in ['jz', 'jnz', 'xmov', 'xadd'] and len(op) != 3:
+        if op[0] in ['jz', 'jnz', 'xmov', 'xadd', 'xsub', 'xshr'] and len(op) != 3:
             raise S2CrException('operation "%s" takes exactly two arguments' % (op[0],))
 
         if op[0] in ['jmp', 'goto', 'jz', 'jnz']:
@@ -140,6 +140,56 @@ def s_to_cratylus(string):
                 for p in range_of_bits():
                     result.append('{%u,1}{%s,1}^%u => {%u,1}{%s}^%u' % (numline, dst, p, numline, src, p))
                 result.append('{%u,1} => {%u}' % (numline, numline + 1))
+
+        elif op[0] == 'xsub':
+            dst = op[1]
+            src = op[2]
+            if is_numeric(src):
+                # move constant to dst'
+                result.append('{%u} => {%u,1}{%s,1}^%u' % (numline, numline, dst, int(src)))
+
+                # subtract dst' from dst
+                for p in range_of_bits():
+                    result.append('{%u,1}{%s}^%u{%s,1}^%u => {%u,1}' % (numline, dst, p, dst, p, numline))
+                result.append('{%u,1} => {%u,2}' % (numline, numline))
+
+                # zero dst' out
+                for p in range_of_bits():
+                    result.append('{%u,2}{%s,1}^%u => {%u,2}' % (numline, dst, p, numline))
+                result.append('{%u,2} => {%u}' % (numline, numline + 1))
+            else:
+                # subtract src from dst and move to dst'
+                for p in range_of_bits():
+                    result.append('{%u}{%s}^%u{%s}^%u => {%u}{%s,1}^%u' % (numline, src, p, dst, p, numline, dst, p))
+                result.append('{%u} => {%u,1}' % (numline, numline))
+
+                # move dst' to src
+                for p in range_of_bits():
+                    result.append('{%u,1}{%s,1}^%u => {%u,1}{%s}^%u' % (numline, dst, p, numline, src, p))
+                result.append('{%u,1} => {%u}' % (numline, numline + 1))
+
+        elif op[0] == 'xshr':
+            dst = op[1]
+            nbits = op[2]
+            if not is_numeric(nbits):
+                raise S2CrException('second operand to "xshr" should be a number')
+
+            nbits = int(nbits)
+
+            # halve dst in dst'
+            for p in range_of_bits(lower=nbits):
+                np = p / (2 ** nbits)
+                result.append('{%u}{%s}^%u => {%u}{%s,1}^%u' % (numline, dst, p, numline, dst, np))
+
+            for p in range_of_bits(upper=nbits):
+                result.append('{%u}{%s}^%u => {%u}' % (numline, dst, p, numline))
+
+            result.append('{%u} => {%u,1}' % (numline, numline))
+
+            # move dst' to dst
+            for p in range_of_bits():
+                result.append('{%u,1}{%s,1}^%u => {%u,1}{%s}^%u' % (numline, dst, p, numline, dst, p))
+            result.append('{%u,1} => {%u}' % (numline, numline + 1))
 
         numline += 1
 
