@@ -7,7 +7,7 @@ import string
 import cratylus
 
 OPTIONS = {
-    'gmp': False,
+    'gmp': True,
 }
 
 class CrcException(Exception):
@@ -509,7 +509,7 @@ def usage():
     sys.stderr.write('Usage:\n')
     sys.stderr.write('    %s <infile.cr> [options]\n' % (sys.argv[0],))
     sys.stderr.write('Options:\n')
-    sys.stderr.write('    -gmp           use GNU Mutiprecision Library\n')
+    sys.stderr.write('    -no-gmp           do not use GNU Mutiprecision Library\n')
     sys.exit(1)
 
 if __name__ == '__main__':
@@ -519,8 +519,8 @@ if __name__ == '__main__':
     args = []
     i = 1
     while i < len(sys.argv):
-        if sys.argv[i] == '-gmp':
-            OPTIONS['gmp'] = True
+        if sys.argv[i] == '-no-gmp':
+            OPTIONS['gmp'] = False
         else:
             args.append(sys.argv[i])
         i += 1
