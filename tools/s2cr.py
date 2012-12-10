@@ -5,8 +5,12 @@ import re
 MAX_BITS = 64
 UNROLL_BITS = 4
 
-def range_of_bits(lower=0, upper=MAX_BITS):
-    return [2 ** x for x in reversed(range(lower, upper, UNROLL_BITS))]
+def range_of_bits(lower=0, upper=MAX_BITS, full=False):
+    if full:
+        unroll = 1
+    else:
+        unroll = UNROLL_BITS
+    return [2 ** x for x in reversed(range(lower, upper, unroll))]
 
 class S2CrException(Exception):
     pass
@@ -63,7 +67,7 @@ def s_to_cratylus(string):
         if op[0] in ['inc', 'dec', 'jmp', 'goto', 'xzero'] and len(op) != 2:
             raise S2CrException('operation "%s" takes exactly one argument' % (op[0],))
 
-        if op[0] in ['jz', 'jnz', 'xmov', 'xadd', 'xsub', 'xshr'] and len(op) != 3:
+        if op[0] in ['jz', 'jnz', 'xmov', 'xadd', 'xsub', 'xshr', 'xshl'] and len(op) != 3:
             raise S2CrException('operation "%s" takes exactly two arguments' % (op[0],))
 
         if op[0] in ['jmp', 'goto', 'jz', 'jnz']:
@@ -168,6 +172,33 @@ def s_to_cratylus(string):
                     result.append('{%u,1}{%s,1}^%u => {%u,1}{%s}^%u' % (numline, dst, p, numline, src, p))
                 result.append('{%u,1} => {%u}' % (numline, numline + 1))
 
+        elif op[0].startswith('xand'):
+            if len(op[0].split('/')) == 2:
+                nbits_precision = int(op[0].split('/')[1])
+            else:
+                nbits_precision = MAX_BITS
+            dst = op[1]
+            src = op[2]
+            if is_numeric(src):
+                src = int(src)
+
+                for p in range_of_bits(lower=nbits_precision):
+                    result.append('{%u}{%s}^%u => {%u}' % (numline, dst, p, numline))
+                result.append('{%u} => {%u,1}' % (numline, numline))
+
+                for p in range_of_bits(upper=nbits_precision, full=True):
+                    if p & src:
+                        result.append('{%u,1}{%s}^%u => {%u,1}{%s,1}^%u' % (numline, dst, p, numline, dst, p))
+                    else:
+                        result.append('{%u,1}{%s}^%u => {%u,1}' % (numline, dst, p, numline))
+                result.append('{%u,1} => {%u,2}' % (numline, numline))
+
+                for p in range_of_bits():
+                    result.append('{%u,2}{%s,1}^%u => {%u,2}{%s}^%u' % (numline, dst, p, numline, dst, p))
+                result.append('{%u,2} => {%u}' % (numline, numline + 1))
+            else:
+                raise S2CrException('"xand" between two variables not implemented')
+
         elif op[0] == 'xshr':
             dst = op[1]
             nbits = op[2]
@@ -184,6 +215,25 @@ def s_to_cratylus(string):
             for p in range_of_bits(upper=nbits):
                 result.append('{%u}{%s}^%u => {%u}' % (numline, dst, p, numline))
 
+            result.append('{%u} => {%u,1}' % (numline, numline))
+
+            # move dst' to dst
+            for p in range_of_bits():
+                result.append('{%u,1}{%s,1}^%u => {%u,1}{%s}^%u' % (numline, dst, p, numline, dst, p))
+            result.append('{%u,1} => {%u}' % (numline, numline + 1))
+
+        elif op[0] == 'xshl':
+            dst = op[1]
+            nbits = op[2]
+            if not is_numeric(nbits):
+                raise S2CrException('second operand to "xshl" should be a number')
+
+            nbits = int(nbits)
+
+            # duplicate dst in dst'
+            for p in range_of_bits():
+                np = p * 2 ** nbits
+                result.append('{%u}{%s}^%u => {%u}{%s,1}^%u' % (numline, dst, p, numline, dst, np))
             result.append('{%u} => {%u,1}' % (numline, numline))
 
             # move dst' to dst

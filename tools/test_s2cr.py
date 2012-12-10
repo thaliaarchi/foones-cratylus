@@ -51,6 +51,15 @@ TESTS = [
         ''',
         'function': lambda value, shift: value >> shift
     },
+    { # shift left
+        'name': 'xshl',
+        'args': [('value', 0, 2 ** 40), ('shift', 0, 24)],
+        'code': '''
+        xshl Answer <<shift>>
+        ! Answer <<value>>
+        ''',
+        'function': lambda value, shift: value << shift
+    },
     { # mov constants
         'name': 'xmov1',
         'args': [('x', 0, 2 ** 64), ('y', 0, 2 ** 64)],
@@ -112,6 +121,15 @@ TESTS = [
         ''',
         'function': lambda x, y: x + y
     },
+    { # and constant
+        'name': 'xand1',
+        'args': [('x', 0, 2 ** 62), ('y', 0, 2 ** 62)],
+        'code': '''
+        xand/1 Answer <<y>>
+        ! Answer <<x>>
+        ''',
+        'function': lambda x, y: x & y & 1
+    }
 ]
 
 def test(*names):
@@ -119,5 +137,5 @@ def test(*names):
         if t['name'] in names:
             test_function(**t)
 
-test('xmov3')
+test('xand1')
 

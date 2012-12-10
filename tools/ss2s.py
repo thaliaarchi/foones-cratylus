@@ -9,6 +9,15 @@ class SS2SException(Exception):
 def indent(x):
     return '\n'.join(['    ' + l for l in x.split('\n')])
 
+def extensions():
+    return ['xzero', 'xmov', 'xadd', 'xsub', 'xshr', 'xshl', 'xand']
+
+def is_numeric(xs):
+    for x in xs:
+        if x not in string.digits:
+            return False
+    return True
+
 class Program(object):
 
     def __init__(self, body):
@@ -118,7 +127,9 @@ def collect_subroutines(body, subroutines):
             subroutines[instr.head[1]] = Sub(instr.head[1], instr.head[2:], instr.body)
 
 def env_expand1(env, prefix, name):
-    if name in env:
+    if is_numeric(name):
+        return name 
+    elif name in env:
         return env[name]
     else:
         return mangle(prefix, name)
@@ -166,7 +177,7 @@ def compile_body(body, subroutines, env, prefix):
             if instr.op[0][-1] == ':':
                 label = instr.op[0][:-1]
                 result.append('%s:' % (mangle(prefix, label),))
-            elif instr.op[0] in ['inc', 'dec', 'jmp', 'goto', 'jz', 'jnz', '!', 'xzero', 'xadd']:
+            elif instr.op[0].split('/')[0] in ['inc', 'dec', 'jmp', 'goto', 'jz', 'jnz', '!'] + extensions():
                 operands = env_expand(env, prefix, instr.op[1:])
                 result.append('    %s %s' % (instr.op[0], ' '.join(operands)))
             elif instr.op[0] in subroutines:
