@@ -166,7 +166,7 @@ def compile_body(body, subroutines, env, prefix):
             if instr.op[0][-1] == ':':
                 label = instr.op[0][:-1]
                 result.append('%s:' % (mangle(prefix, label),))
-            elif instr.op[0] in ['inc', 'dec', 'jmp', 'goto', 'jz', 'jnz', '!']:
+            elif instr.op[0] in ['inc', 'dec', 'jmp', 'goto', 'jz', 'jnz', '!', 'xzero', 'xadd']:
                 operands = env_expand(env, prefix, instr.op[1:])
                 result.append('    %s %s' % (instr.op[0], ' '.join(operands)))
             elif instr.op[0] in subroutines:
