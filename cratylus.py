@@ -26,7 +26,10 @@ OPTIONS = {
     'verbose': False,
     'script': False,
     'modulo': 0,
+    'allow_maximal_powers': False,
 }
+
+MXL_POWER = '@'
 
 class CratylusException(Exception):
 
@@ -74,10 +77,16 @@ def cmp_keys(k1, k2):
 def lexisorted(keys):
     return list(reversed(sorted(keys, cmp=cmp_keys)))
 
+def add_powers(p1, p2):
+    if p1 == MXL_POWER or p2 == MXL_POWER:
+        return MXL_POWER
+    else:
+        return p1 + p2
+
 def mul_keys(k1, k2):
     vp = {}
     for v, p in list(k1) + list(k2):
-        vp[v] = vp.get(v, 0) + p
+        vp[v] = add_powers(vp.get(v, 0), p)
     return normalize_key(vp.items())
 
 def poly_from_constant(k, modulo=0):
@@ -126,6 +135,8 @@ class Poly(object):
         return Poly(coeffs, modulo=self._modulo)
 
     def __pow__(self, pw):
+        if pw == MXL_POWER:
+            return self.maximal_power()
         res = poly_from_constant(1, modulo=self._modulo)
         acc = self
         while pw > 0:
@@ -134,6 +145,22 @@ class Poly(object):
             acc = acc * acc
             pw /= 2
         return res
+
+    def maximal_power(self):
+        if not self.is_monomial():
+            raise CratylusException('maximal power is allowed for monomials only')
+        coeffs = {}
+        for k in self._coeffs.keys():
+            new_k = tuple([(var, MXL_POWER) for var, power in k])
+            coeffs[tuple(new_k)] = self._coeffs[k]
+        return Poly(coeffs, modulo=self._modulo)
+
+    def has_maximal_power(self):
+        for k in self._coeffs.keys():
+            for var, power in k:
+                if power == MXL_POWER:
+                    return True
+        return False
 
     def __eq__(self, q):
         ps = sorted(self._coeffs.items())
@@ -360,6 +387,11 @@ def tokenize(s, filename='...', modulo=0):
                 num += s[i]
                 i += 1
             yield Token('NUM', int(num), Position(filename, s, b, i))
+        elif s[i:i + len(MXL_POWER)] == MXL_POWER:
+            if not OPTIONS['allow_maximal_powers']:
+                raise CratylusException('maximal powers not allowed')
+            yield Token('NUM', MXL_POWER, Position(filename, s, i, i + len(MXL_POWER)))
+            i += len(MXL_POWER)
         elif s[i] in string.lowercase:
             yield Token('VAR', s[i], Position(filename, s, i, i + 1))
             i += 1
@@ -575,6 +607,8 @@ def parse_goal(tokens, i, modulo=0):
     return i, Goal(clause)
 
 def run_goal(rules, goal, modulo=0):
+    if goal.has_maximal_power():
+        raise CratylusException('goal "%s" cannot have a maximal power' % (goal,))
     p0 = poly_from_constant(0, modulo=modulo)
     while True:
         for rule in rules:
@@ -614,6 +648,8 @@ def parse_program(string, filename='...', modulo=0):
         else:
             i, rule = parse_rule(tokens, i, modulo=modulo)
             rules.append(rule)
+            if not rule.head.has_maximal_power() and any([m.has_maximal_power for m in rule.clause]):
+                raise CratylusException('rule "%s" body can have maximal power only if head does' % (rule,))
     return Program(rules)
 
 def load_program(string, filename='...', modulo=0):
@@ -635,6 +671,11 @@ def load_program_from_file(filename, modulo=0):
         if modulo != 2 and not OPTIONS['script']:
             sys.stderr.write('! .cr2 file - forcing coefficients in Z_2\n')
         modulo = 2
+
+    if filename.endswith('.crm'):
+        if not OPTIONS['allow_maximal_powers']:
+            sys.stderr.write('! .crm file - allowing maximal powers\n')
+        OPTIONS['allow_maximal_powers'] = True
 
     try:
         f = file(filename, 'r')
@@ -701,6 +742,7 @@ def usage(exit=True):
     sys.stderr.write('    -v, --verbose          trace every step\n')
     sys.stderr.write('    -s, --script           do not start toplevel interaction\n')
     sys.stderr.write('    -b, --binary           coefficients are in Z_2\n')
+    sys.stderr.write('    -m, --maximal          allow maximal powers (x^@)\n')
     if exit:
         sys.exit(1)
 
@@ -718,6 +760,9 @@ if __name__ == '__main__':
             i += 1
         elif sys.argv[i] in ['-b', '--binary']:
             OPTIONS['modulo'] = 2
+            i += 1
+        elif sys.argv[i] in ['-m', '--maximal']:
+            OPTIONS['allow_maximal_powers'] = True
             i += 1
         else:
             args.append(sys.argv[i])
