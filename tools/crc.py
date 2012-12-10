@@ -158,7 +158,7 @@ def crc(program):
         prog.append('\t/* Initialize constants */\n')
         for i in range(num_constants):
             prog.append('\tmpz_init_set_str(c[%u], "%s", 10);\n' % (i, constants[i],))
-            prog.append('\n')
+        prog.append('\n')
 
     prog.append('\t/* Initialize variables */\n')
     prog.append('\tfor (i = 0; i < VARS; i++) {\n')
