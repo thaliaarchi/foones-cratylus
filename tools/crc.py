@@ -48,20 +48,75 @@ def cratylus_compile(filename, program):
 
 #### Monomial form compiler
 
+def crc_collect_constants(polys):
+    constants = {}
+    for poly in polys:
+        key, coef = poly.coefficients().items()[0]
+        for var, power in key:
+            if power == cratylus.MXL_POWER:
+                power = 1
+            constants[power] = True
+    return constants
+
 def crc_condition(monomial, table, constants_invtable=None):
     key, coef = monomial.coefficients().items()[0]
     cond = []
     for var, power in key:
+        if power == cratylus.MXL_POWER:
+            power = 1
         if OPTIONS['gmp']:
             cond.append('mpz_cmp(v[%u], c[%u]) >= 0' % (table[var], constants_invtable[power]))
         else:
             cond.append('v[%u] >= %u' % (table[var], power))
     return ' && '.join(cond)
 
+def crc_inc_dec_maximal(rule, table, indent=''):
+    if not rule.head.has_maximal_power():
+        return ''
+    stmt = []
+
+    left_vars = rule.head.vars_with_maximal_power()
+
+    right_vars = {}
+    for m in rule.clause:
+        for v in rule.head.vars_with_maximal_power():
+            right_vars[v] = 1
+    right_vars = right_vars.keys()
+
+    if OPTIONS['gmp']:
+        stmt.append('mpz_set(mxl, v[%u]);\n' % (table[left_vars[0]],))
+        for v in left_vars[1:]:
+            stmt.append('if (mpz_cmp(mxl, v[%u]) > 0) {\n' % (table[v],))
+            stmt.append('\tmpz_set(mxl, v[%u]);\n' % (table[v],))
+            stmt.append('}\n')
+
+        for v in left_vars:
+            stmt.append('mpz_sub(v[%u], v[%u], mxl);\n' % (table[v], table[v]))
+
+        for v in right_vars:
+            stmt.append('mpz_add(v[%u], v[%u], mxl);\n' % (table[v], table[v]))
+
+    else:
+        stmt.append('mxl = v[%u];\n' % (table[left_vars[0]],))
+        for v in left_vars[1:]:
+            stmt.append('if (mxl > v[%u]) {\n' % (table[v],))
+            stmt.append('\tmxl = v[%u];\n' % (table[v],))
+            stmt.append('}\n')
+
+        for v in left_vars:
+            stmt.append('v[%u] -= mxl;\n' % (table[v],))
+
+        for v in right_vars:
+            stmt.append('v[%u] += mxl;\n' % (table[v],))
+
+    return ''.join([indent + s for s in stmt])
+
 def crc_inc_dec(monomial, table, sign, constants_invtable=None, indent=''):
     key, coef = monomial.coefficients().items()[0]
     stmt = []
     for var, power in key:
+        if power == cratylus.MXL_POWER:
+            continue
         if OPTIONS['gmp']:
             if sign == '+':
                 func_sign = 'mpz_add'
@@ -71,14 +126,6 @@ def crc_inc_dec(monomial, table, sign, constants_invtable=None, indent=''):
         else:
             stmt.append('%sv[%u] %s= %u;\n' % (indent, table[var], sign, power))
     return ''.join(stmt)
-
-def crc_collect_constants(polys):
-    constants = {}
-    for poly in polys:
-        key, coef = poly.coefficients().items()[0]
-        for var, power in key:
-            constants[power] = True
-    return constants
 
 def crc(program):
 
@@ -121,7 +168,6 @@ def crc(program):
     if OPTIONS['gmp']:
         prog.append('#include <gmp.h>\n')
     prog.append('\n')
-    prog.append('#define VARS %u\n' % (num_vars,))
 
     if OPTIONS['gmp']:
         constants = crc_collect_constants(all_polys)
@@ -137,6 +183,7 @@ def crc(program):
             constants_invtable[constant] = i
             i += 1
 
+    prog.append('#define VARS %u\n' % (num_vars,))
     if OPTIONS['gmp']:
         prog.append('mpz_t v[VARS];\n')
     else:
@@ -152,6 +199,12 @@ def crc(program):
     prog.append('int main()\n')
     prog.append('{\n')
     prog.append('\tint i, z;\n')
+    if program.has_maximal_power():
+        if OPTIONS['gmp']:
+            prog.append('\tmpz_t mxl;\n')
+            prog.append('\tmpz_init(mxl);\n')
+        else:
+            prog.append('\tunsigned long int mxl;\n')
     prog.append('\n')
 
     if OPTIONS['gmp']:
@@ -186,6 +239,7 @@ def crc(program):
         if rule.is_goal(): continue
         prog.append('\t\t} else if (%s) {\n' % (crc_condition(rule.head, table, constants_invtable),))
         prog.append('\t\t\t/* %s */\n' % (rule,))
+        prog.append(crc_inc_dec_maximal(rule, table, indent='\t\t\t'))
         prog.append(crc_inc_dec(rule.head, table, '-', constants_invtable, indent='\t\t\t'))
         for m in rule.clause:
             prog.append(crc_inc_dec(m, table, '+', constants_invtable, indent='\t\t\t'))

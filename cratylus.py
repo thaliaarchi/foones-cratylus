@@ -155,12 +155,16 @@ class Poly(object):
             coeffs[tuple(new_k)] = self._coeffs[k]
         return Poly(coeffs, modulo=self._modulo)
 
-    def has_maximal_power(self):
+    def vars_with_maximal_power(self):
+        vs = []
         for k in self._coeffs.keys():
             for var, power in k:
                 if power == MXL_POWER:
-                    return True
-        return False
+                    vs.append(var)
+        return vs
+
+    def has_maximal_power(self):
+        return self.vars_with_maximal_power() != []
 
     def __eq__(self, q):
         ps = sorted(self._coeffs.items())
@@ -566,6 +570,9 @@ class Rule(object):
     def is_goal(self):
         return False
 
+    def has_maximal_power(self):
+        return self.head.has_maximal_power()
+
 class Goal(object):
 
     def __init__(self, clause=[]):
@@ -590,6 +597,12 @@ class Program(object):
 
     def repr_compact(self, compact=True):
         return '\n'.join(['%s.' % (r.repr_compact(compact),) for r in self.rules])
+
+    def has_maximal_power(self):
+        for rule in self.rules:
+            if not rule.is_goal() and rule.has_maximal_power():
+                return True
+        return False
 
 def parse_rule(tokens, i, modulo=0):
     i, head = parse_polynomial(tokens, i, modulo=modulo)
@@ -637,6 +650,17 @@ def run_goal(rules, goal, modulo=0):
             break
 
 def parse_program(string, filename='...', modulo=0):
+
+    if filename.endswith('.cr2'):
+        if modulo != 2 and not OPTIONS['script']:
+            sys.stderr.write('! .cr2 file - forcing coefficients in Z_2\n')
+        modulo = 2
+
+    if filename.endswith('.crm'):
+        if not OPTIONS['allow_maximal_powers']:
+            sys.stderr.write('! .crm file - allowing maximal powers\n')
+        OPTIONS['allow_maximal_powers'] = True
+
     tokens = list(tokenize(string, filename, modulo=modulo))
     rules = []
     i = 0
@@ -648,7 +672,7 @@ def parse_program(string, filename='...', modulo=0):
         else:
             i, rule = parse_rule(tokens, i, modulo=modulo)
             rules.append(rule)
-            if not rule.head.has_maximal_power() and any([m.has_maximal_power for m in rule.clause]):
+            if not rule.head.has_maximal_power() and any([m.has_maximal_power() for m in rule.clause]):
                 raise CratylusException('rule "%s" body can have maximal power only if head does' % (rule,))
     return Program(rules)
 
@@ -666,16 +690,6 @@ def load_program(string, filename='...', modulo=0):
 def load_program_from_file(filename, modulo=0):
     if not OPTIONS['script']:
         sys.stderr.write('! Loading file "%s"\n' % (filename,))
-
-    if filename.endswith('.cr2'):
-        if modulo != 2 and not OPTIONS['script']:
-            sys.stderr.write('! .cr2 file - forcing coefficients in Z_2\n')
-        modulo = 2
-
-    if filename.endswith('.crm'):
-        if not OPTIONS['allow_maximal_powers']:
-            sys.stderr.write('! .crm file - allowing maximal powers\n')
-        OPTIONS['allow_maximal_powers'] = True
 
     try:
         f = file(filename, 'r')
