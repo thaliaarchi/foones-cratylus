@@ -4,13 +4,11 @@ SUB mul X Y Res
 	xmov aY Y
 	xzero Res
 	WHILENZ aX
-		xmov bit aX
-		xand/1 bit 1
+		xshr_rem aX bit 1
 		IFNZ bit
 			xadd Res aY
 		END
 		xshl aY 1
-		xshr aX 1
 	END
 	xzero bit
 	xzero aY
@@ -36,4 +34,4 @@ END
 fact X Res
 xzero X
 
-! X 20
+! X 100

@@ -192,8 +192,11 @@ def s_to_cratylus(string):
         if op[0] in ['inc', 'dec', 'jmp', 'goto', 'xzero'] and len(op) != 2:
             raise S2CrException('operation "%s" takes exactly one argument' % (op[0],))
 
-        if op[0] in ['jz', 'jnz', 'xmov', 'xadd', 'xsub', 'xshr', 'xshl'] and len(op) != 3:
+        if op[0] in ['jz', 'jnz', 'xmov', 'xadd', 'xsub', 'xshr','xshl'] and len(op) != 3:
             raise S2CrException('operation "%s" takes exactly two arguments' % (op[0],))
+
+        if op[0] in ['xshr_rem'] and len(op) != 4:
+            raise S2CrException('operation "%s" takes exactly three arguments' % (op[0],))
 
         if op[0] in ['jmp', 'goto', 'jz', 'jnz']:
             label = op[-1]
@@ -245,23 +248,27 @@ def s_to_cratylus(string):
             src = op[2]
             result.extend(xsub(src, dst, numline, numline + 1))
 
-        elif op[0].startswith('xand'):
-            if len(op[0].split('/')) == 2:
-                nbits_precision = int(op[0].split('/')[1])
-            else:
-                nbits_precision = MAX_BITS
-            assert not "TODO"
-
         elif op[0] == 'xshr':
             var = op[1]
             nbits = op[2]
             if not is_numeric(nbits):
                 raise S2CrException('"xshr": second operand should be a number')
 
-            varr = '%s,r' % (var,)
+            rem = '%s,r' % (var,)
             linez = '%s,z' % (numline,)
-            result.extend(divmod_pow2(var, varr, int(nbits), numline, linez))
-            result.extend(xzero(varr, linez, numline + 1))
+            result.extend(divmod_pow2(var, rem, int(nbits), numline, linez))
+            result.extend(xzero(rem, linez, numline + 1))
+
+        elif op[0] == 'xshr_rem':
+            var = op[1]
+            rem = op[2]
+            nbits = op[3]
+            if not is_numeric(nbits):
+                raise S2CrException('"xshr": second operand should be a number')
+
+            linez = '%s,z' % (numline,)
+            result.extend(xzero(rem, numline, linez))
+            result.extend(divmod_pow2(var, rem, int(nbits), linez, numline + 1))
 
         elif op[0] == 'xshl':
             var = op[1]

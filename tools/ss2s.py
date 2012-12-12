@@ -10,7 +10,7 @@ def indent(x):
     return '\n'.join(['    ' + l for l in x.split('\n')])
 
 def extensions():
-    return ['xzero', 'xmov', 'xadd', 'xsub', 'xshr', 'xshl', 'xand']
+    return ['xzero', 'xmov', 'xadd', 'xsub', 'xshr', 'xshr_rem', 'xshl']
 
 def is_numeric(xs):
     for x in xs:
