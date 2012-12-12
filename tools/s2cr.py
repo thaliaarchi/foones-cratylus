@@ -27,6 +27,47 @@ def xzero(var, line1, line2):
     result.append('{%s} => {%s}' % (line1, line2))
     return result
 
+def xmov(src, dst, line1, line2):
+    result = []
+    if is_numeric(src):
+        result.append('{%s}{%s}^@ => {%s}{%s}^%u' % (line1, dst, line2, dst, int(src)))
+        result.append('{%s} => {%s}{%s}^%u' % (line1, line2, dst, int(src)))
+    else:
+        result.append('{%s}{%s}^@ => {%s}' % (line1, dst, line1))
+        result.append('{%s}{%s}^@ => {%s,a}{,1}^@{%s}^@' % (line1, src, line1, dst))
+        result.append('{%s} => {%s}' % (line1, line2))
+        result.append('{%s,a}{,1}^@ => {%s}{%s}^@' % (line1, line2, src))
+    return result
+
+def xadd(src, dst, line1, line2):
+    result = []
+    if is_numeric(src):
+        result.append('{%s} => {%s}{%s}^%u' % (line1, line2, dst, int(src)))
+    else:
+        result.append('{%s}{%s}^@ => {%s,a}{,1}^@{%s}^@' % (line1, src, line1, dst))
+        result.append('{%s} => {%s}' % (line1, line2))
+        result.append('{%s,a}{,1}^@ => {%s}{%s}^@' % (line1, line2, src))
+    return result
+
+def xsub(src, dst, line1, line2):
+    result = []
+    if is_numeric(src):
+        result.append('{%s} => {%s,a}{,1}^%u' % (line1, line1, int(src)))
+        result.append('{%s,a}{%s}^@{,1}^@ => {%s,b}' % (line1, dst, line1))
+        result.append('{%s,a} => {%s,b}' % (line1, line1))
+        result.append('{%s,b}{,1}^@ => {%s}' % (line1, line2))
+        result.append('{%s,b} => {%s}' % (line1, line2))
+    else:
+        result.append('{%s}{%s}^@ => {%s,a}{,1}^@{,2}^@' % (line1, src, line1))
+        result.append('{%s} => {%s}' % (line1, line2))
+        result.append('{%s,a}{%s}^@{,1}^@ => {%s,b}' % (line1, dst, line1))
+        result.append('{%s,a} => {%s,b}' % (line1, line1))
+        result.append('{%s,b}{,1}^@ => {%s,c}' % (line1, line1))
+        result.append('{%s,b} => {%s,c}' % (line1, line1))
+        result.append('{%s,c}{,2}^@ => {%s}{%s}^@' % (line1, line2, src))
+        result.append('{%s,c} => {%s}' % (line1, line2))
+    return result
+
 def s_to_cratylus(string):
 
     string = re.sub('[ \t]+', ' ', string)
@@ -114,28 +155,28 @@ def s_to_cratylus(string):
         elif op[0] == 'xmov':
             dst = op[1]
             src = op[2]
-
-            if is_numeric(src):
-                result.append('{%u}{%s}^@ => {%u}{%s}^%u' % (numline, dst, numline + 1, dst, int(src)))
-                result.append('{%u} => {%u}{%s}^%u' % (numline, numline + 1, dst, int(src)))
-            else:
-                result.append('{%u}{%s}^@ => {%u}' % (numline, dst, numline))
-                result.append('{%u}{%s}^@ => {%u,a}{,1}^@{%s}^@' % (numline, src, numline, dst))
-                result.append('{%u} => {%u}' % (numline, numline + 1))
-                result.append('{%u,a}{,1}^@ => {%u}{%s}^@' % (numline, numline + 1, src))
+            result.extend(xmov(src, dst, numline, numline + 1))
 
         elif op[0] == 'xadd':
-            assert not "TODO"
+            dst = op[1]
+            src = op[2]
+            result.extend(xadd(src, dst, numline, numline + 1))
+
         elif op[0] == 'xsub':
-            assert not "TODO"
+            dst = op[1]
+            src = op[2]
+            result.extend(xsub(src, dst, numline, numline + 1))
+
         elif op[0].startswith('xand'):
             if len(op[0].split('/')) == 2:
                 nbits_precision = int(op[0].split('/')[1])
             else:
                 nbits_precision = MAX_BITS
             assert not "TODO"
+
         elif op[0] == 'xshr':
             assert not "TODO"
+
         elif op[0] == 'xshl':
             assert not "TODO"
 

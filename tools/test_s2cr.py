@@ -7,20 +7,34 @@ def is_numeric(x):
             return False
     return True
 
-TEST_PER_CASE = 1
-
 def instantiate(code, args):
     for arg_name, val in args:
         code = code.replace('<<%s>>' % (arg_name,), str(val))
     return code
 
+def choices(nargs, alphabet):
+    if nargs == 0:
+        yield []
+    else:
+        for x in alphabet:
+            for xs in choices(nargs - 1, alphabet):
+                yield [x] + xs
+
+def arg_value(arg_choice, lower, upper):
+    assert arg_choice in ['lower', 'upper', 'random']
+    if arg_choice == 'lower':
+        return lower
+    elif arg_choice == 'upper':
+        return upper
+    elif arg_choice == 'random':
+        return random.randint(lower, upper)
+
 def test_function(name, code, args, function):
     arg_ranges = args
     print '[+] testing function', name
-    for i in range(TEST_PER_CASE):
+    for args_choices in choices(len(args), ['lower', 'upper', 'random']):
         print '\t-- test case --'
-        #args = [(arg_name, random.randint(lower, upper)) for (arg_name, lower, upper) in arg_ranges]
-        args = [(arg_name, random.choice([lower, upper])) for (arg_name, lower, upper) in arg_ranges]
+        args = [(arg_name, arg_value(arg_choice, lower, upper)) for (arg_choice, (arg_name, lower, upper)) in zip(args_choices, arg_ranges)]
         print '\targuments: %s' % (', '.join(['%s: %s' % arg for arg in args]),)
         expected = function(*[value for arg_name, value in args])
         print '\texpected : %s' % (expected,)
@@ -44,6 +58,15 @@ def test_function(name, code, args, function):
         assert reference == expected
 
 TESTS = [
+    { # zero
+        'name': 'xzero',
+        'args': [('value', 0, 2 ** 64)],
+        'code': '''
+        xzero Answer
+        ! Answer <<value>>
+        ''',
+        'function': lambda value: 0
+    },
     { # shift right
         'name': 'xshr',
         'args': [('value', 0, 2 ** 64), ('shift', 0, 64)],
@@ -123,6 +146,37 @@ TESTS = [
         ''',
         'function': lambda x, y: x + y
     },
+    { # sub vars
+        'name': 'xsub1',
+        'args': [('x', 0, 2 ** 62), ('y', 0, 2 ** 62)],
+        'code': '''
+        xsub Answer Y
+        xzero Y
+        ! Answer <<x>>
+        ! Y <<y>>
+        ''',
+        'function': lambda x, y: max(0, x - y)
+    },
+    { # sub vars - leave the second argument untouched
+        'name': 'xsub2',
+        'args': [('x', 0, 2 ** 62), ('y', 0, 2 ** 62)],
+        'code': '''
+        xsub X Answer
+        xzero X
+        ! X <<x>>
+        ! Answer <<y>>
+        ''',
+        'function': lambda x, y: y
+    },
+    { # sub constant
+        'name': 'xsub3',
+        'args': [('x', 0, 2 ** 62), ('y', 0, 2 ** 62)],
+        'code': '''
+        xsub Answer <<y>>
+        ! Answer <<x>>
+        ''',
+        'function': lambda x, y: max(0, x - y)
+    },
     { # and constant
         'name': 'xand1',
         'args': [('x', 0, 2 ** 62), ('y', 0, 2 ** 62)],
@@ -139,5 +193,10 @@ def test(*names):
         if t['name'] in names:
             test_function(**t)
 
-test('xmov1', 'xmov2', 'xmov3')
+test(
+    'xzero',
+    'xmov1', 'xmov2', 'xmov3',
+    'xadd1', 'xadd2', 'xadd3',
+    'xsub1', 'xsub2', 'xsub3'
+)
 
