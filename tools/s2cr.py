@@ -68,6 +68,22 @@ def xsub(src, dst, line1, line2):
         result.append('{%s,c} => {%s}' % (line1, line2))
     return result
 
+def xshr(var, nbits, line1, line2):
+    pass
+
+def xshl(var, nbits, line1, line2):
+    result = []    
+    if nbits == 0:
+        result.append('{%s} => {%s}' % (line1, line2))
+    else:
+        result.append('{%s} => {%s,a}{,1}^%u' % (line1, line1, nbits))
+        result.append('{%s,a}{,1}{%s}^@ => {%s,b}{,2}^@{,3}^@' % (line1, var, line1))
+        result.append('{%s,a}{,1}^@ => {%s}' % (line1, line2))
+        result.append('{%s,a} => {%s}' % (line1, line2))
+        result.append('{%s,b}{,2}^@ => {%s,b}{%s}^@' % (line1, line1, var))
+        result.append('{%s,b}{,3}^@ => {%s,a}{%s}^@' % (line1, line1, var))
+    return result
+
 def s_to_cratylus(string):
 
     string = re.sub('[ \t]+', ' ', string)
@@ -175,10 +191,18 @@ def s_to_cratylus(string):
             assert not "TODO"
 
         elif op[0] == 'xshr':
-            assert not "TODO"
+            var = op[1]
+            nbits = op[2]
+            if not is_numeric(nbits):
+                raise S2CrException('"xshr": second operand should be a number')
+            result.extend(xshr(var, int(nbits), numline, numline + 1))
 
         elif op[0] == 'xshl':
-            assert not "TODO"
+            var = op[1]
+            nbits = op[2]
+            if not is_numeric(nbits):
+                raise S2CrException('"xshl": second operand should be a number')
+            result.extend(xshl(var, int(nbits), numline, numline + 1))
 
         numline += 1
 

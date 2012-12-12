@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import random
 import os
 
@@ -194,9 +195,10 @@ def test(*names):
             test_function(**t)
 
 test(
-    'xzero',
-    'xmov1', 'xmov2', 'xmov3',
-    'xadd1', 'xadd2', 'xadd3',
-    'xsub1', 'xsub2', 'xsub3'
+    #'xzero',
+    #'xmov1', 'xmov2', 'xmov3',
+    #'xadd1', 'xadd2', 'xadd3',
+    #'xsub1', 'xsub2', 'xsub3'
+    'xshl'
 )
 
