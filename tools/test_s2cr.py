@@ -19,17 +19,19 @@ def test_function(name, code, args, function):
     print '[+] testing function', name
     for i in range(TEST_PER_CASE):
         print '\t-- test case --'
-        args = [(arg_name, random.randint(lower, upper)) for (arg_name, lower, upper) in arg_ranges]
+        #args = [(arg_name, random.randint(lower, upper)) for (arg_name, lower, upper) in arg_ranges]
+        args = [(arg_name, random.choice([lower, upper])) for (arg_name, lower, upper) in arg_ranges]
         print '\targuments: %s' % (', '.join(['%s: %s' % arg for arg in args]),)
         expected = function(*[value for arg_name, value in args])
         print '\texpected : %s' % (expected,)
 
-        os.system('rm -f test.s test.cr')
+        os.system('rm -f test.s test.crm test.c test.bin')
         f = file('test.s', 'w')
         f.write(instantiate(code, args))
         f.close()
-        os.system('./s2cr.py test.s >/dev/null')
-        rd = os.popen('../cratylus.py test.cr -s').read().strip(' \t\r\n')
+        os.system('./s2cr.py test.s 2>/dev/null')
+        #rd = os.popen('../cratylus.py test.cr -s').read().strip(' \t\r\n')
+        rd = os.popen('./crc.py test.crm 2>/dev/null && gcc -o test.bin test.c -lgmp -g -ggdb 2>/dev/null && ./test.bin 2>/dev/null').read().strip(' \t\r\n')
         if rd == '1':
             reference = 0
         elif rd == '{Answer}':
@@ -137,5 +139,5 @@ def test(*names):
         if t['name'] in names:
             test_function(**t)
 
-test('xand1')
+test('xmov1', 'xmov2', 'xmov3')
 

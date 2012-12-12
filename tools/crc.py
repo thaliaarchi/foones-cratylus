@@ -590,10 +590,12 @@ if __name__ == '__main__':
 
     result = cratylus_compile(infile, contents)
 
-    print result
+    sys.stderr.write(result)
 
     if infile.endswith('.cr'):
         outfile = infile[:-1]
+    elif infile.endswith('.crm'):
+        outfile = infile[:-2]
     else:
         outfile = infile + '.c'
     f = file(outfile, 'w')

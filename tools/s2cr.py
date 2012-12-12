@@ -21,6 +21,12 @@ def is_numeric(x):
             return False
     return True
 
+def xzero(var, line1, line2):
+    result = []
+    result.append('{%s}{%s}^@ => {%s}' % (line1, var, line2))
+    result.append('{%s} => {%s}' % (line1, line2))
+    return result
+
 def s_to_cratylus(string):
 
     string = re.sub('[ \t]+', ' ', string)
@@ -103,143 +109,35 @@ def s_to_cratylus(string):
         # extensions
 
         elif op[0] == 'xzero':
-            var = op[1]
-            for p in range_of_bits():
-                result.append('{%u}{%s}^%u => {%u}' % (numline, var, p, numline))
-            result.append('{%u} => {%u}' % (numline, numline + 1))
+            result.extend(xzero(op[1], numline, numline + 1))
 
         elif op[0] == 'xmov':
             dst = op[1]
             src = op[2]
-            # zero dst
-            for p in range_of_bits():
-                result.append('{%u}{%s}^%u => {%u}' % (numline, dst, p, numline))
-            result.append('{%u} => {%u,1}' % (numline, numline))
 
             if is_numeric(src):
-                result.append('{%u,1} => {%u}{%s}^%u' % (numline, numline + 1, dst, int(src)))
-            else:
-                # move src to dst and dst'
-                for p in range_of_bits():
-                    result.append('{%u,1}{%s}^%u => {%u,1}{%s}^%u{%s,1}^%u' % (numline, src, p, numline, dst, p, dst, p))
-                result.append('{%u,1} => {%u,2}' % (numline, numline))
-
-                # move dst' to src
-                for p in range_of_bits():
-                    result.append('{%u,2}{%s,1}^%u => {%u,2}{%s}^%u' % (numline, dst, p, numline, src, p))
-                result.append('{%u,2} => {%u}' % (numline, numline + 1))
-
-        elif op[0] == 'xadd':
-            dst = op[1]
-            src = op[2]
-            if is_numeric(src):
+                result.append('{%u}{%s}^@ => {%u}{%s}^%u' % (numline, dst, numline + 1, dst, int(src)))
                 result.append('{%u} => {%u}{%s}^%u' % (numline, numline + 1, dst, int(src)))
             else:
-                # move src to dst and dst'
-                for p in range_of_bits():
-                    result.append('{%u}{%s}^%u => {%u}{%s}^%u{%s,1}^%u' % (numline, src, p, numline, dst, p, dst, p))
-                result.append('{%u} => {%u,1}' % (numline, numline))
+                result.append('{%u}{%s}^@ => {%u}' % (numline, dst, numline))
+                result.append('{%u}{%s}^@ => {%u,a}{,1}^@{%s}^@' % (numline, src, numline, dst))
+                result.append('{%u} => {%u}' % (numline, numline + 1))
+                result.append('{%u,a}{,1}^@ => {%u}{%s}^@' % (numline, numline + 1, src))
 
-                # move dst' to src
-                for p in range_of_bits():
-                    result.append('{%u,1}{%s,1}^%u => {%u,1}{%s}^%u' % (numline, dst, p, numline, src, p))
-                result.append('{%u,1} => {%u}' % (numline, numline + 1))
-
+        elif op[0] == 'xadd':
+            assert not "TODO"
         elif op[0] == 'xsub':
-            dst = op[1]
-            src = op[2]
-            if is_numeric(src):
-                # move constant to dst'
-                result.append('{%u} => {%u,1}{%s,1}^%u' % (numline, numline, dst, int(src)))
-
-                # subtract dst' from dst
-                for p in range_of_bits():
-                    result.append('{%u,1}{%s}^%u{%s,1}^%u => {%u,1}' % (numline, dst, p, dst, p, numline))
-                result.append('{%u,1} => {%u,2}' % (numline, numline))
-
-                # zero dst' out
-                for p in range_of_bits():
-                    result.append('{%u,2}{%s,1}^%u => {%u,2}' % (numline, dst, p, numline))
-                result.append('{%u,2} => {%u}' % (numline, numline + 1))
-            else:
-                # subtract src from dst and move to dst'
-                for p in range_of_bits():
-                    result.append('{%u}{%s}^%u{%s}^%u => {%u}{%s,1}^%u' % (numline, src, p, dst, p, numline, dst, p))
-                result.append('{%u} => {%u,1}' % (numline, numline))
-
-                # move dst' to src
-                for p in range_of_bits():
-                    result.append('{%u,1}{%s,1}^%u => {%u,1}{%s}^%u' % (numline, dst, p, numline, src, p))
-                result.append('{%u,1} => {%u}' % (numline, numline + 1))
-
+            assert not "TODO"
         elif op[0].startswith('xand'):
             if len(op[0].split('/')) == 2:
                 nbits_precision = int(op[0].split('/')[1])
             else:
                 nbits_precision = MAX_BITS
-            dst = op[1]
-            src = op[2]
-            if is_numeric(src):
-                src = int(src)
-
-                for p in range_of_bits(lower=nbits_precision):
-                    result.append('{%u}{%s}^%u => {%u}' % (numline, dst, p, numline))
-                result.append('{%u} => {%u,1}' % (numline, numline))
-
-                for p in range_of_bits(upper=nbits_precision, full=True):
-                    if p & src:
-                        result.append('{%u,1}{%s}^%u => {%u,1}{%s,1}^%u' % (numline, dst, p, numline, dst, p))
-                    else:
-                        result.append('{%u,1}{%s}^%u => {%u,1}' % (numline, dst, p, numline))
-                result.append('{%u,1} => {%u,2}' % (numline, numline))
-
-                for p in range_of_bits():
-                    result.append('{%u,2}{%s,1}^%u => {%u,2}{%s}^%u' % (numline, dst, p, numline, dst, p))
-                result.append('{%u,2} => {%u}' % (numline, numline + 1))
-            else:
-                raise S2CrException('"xand" between two variables not implemented')
-
+            assert not "TODO"
         elif op[0] == 'xshr':
-            dst = op[1]
-            nbits = op[2]
-            if not is_numeric(nbits):
-                raise S2CrException('second operand to "xshr" should be a number')
-
-            nbits = int(nbits)
-
-            # halve dst in dst'
-            for p in range_of_bits(lower=nbits):
-                np = p / (2 ** nbits)
-                result.append('{%u}{%s}^%u => {%u}{%s,1}^%u' % (numline, dst, p, numline, dst, np))
-
-            for p in range_of_bits(upper=nbits):
-                result.append('{%u}{%s}^%u => {%u}' % (numline, dst, p, numline))
-
-            result.append('{%u} => {%u,1}' % (numline, numline))
-
-            # move dst' to dst
-            for p in range_of_bits():
-                result.append('{%u,1}{%s,1}^%u => {%u,1}{%s}^%u' % (numline, dst, p, numline, dst, p))
-            result.append('{%u,1} => {%u}' % (numline, numline + 1))
-
+            assert not "TODO"
         elif op[0] == 'xshl':
-            dst = op[1]
-            nbits = op[2]
-            if not is_numeric(nbits):
-                raise S2CrException('second operand to "xshl" should be a number')
-
-            nbits = int(nbits)
-
-            # duplicate dst in dst'
-            for p in range_of_bits():
-                np = p * 2 ** nbits
-                result.append('{%u}{%s}^%u => {%u}{%s,1}^%u' % (numline, dst, p, numline, dst, np))
-            result.append('{%u} => {%u,1}' % (numline, numline))
-
-            # move dst' to dst
-            for p in range_of_bits():
-                result.append('{%u,1}{%s,1}^%u => {%u,1}{%s}^%u' % (numline, dst, p, numline, dst, p))
-            result.append('{%u,1} => {%u}' % (numline, numline + 1))
+            assert not "TODO"
 
         numline += 1
 
@@ -267,9 +165,9 @@ if __name__ == '__main__':
     in_file = sys.argv[1]
 
     if in_file.endswith('.s'):
-        out_file = in_file[:-2] + '.cr'
+        out_file = in_file[:-2] + '.crm'
     else:
-        out_file = in_file + '.cr'
+        out_file = in_file + '.crm'
 
     f = file(sys.argv[1], 'r')
     contents = f.read()
@@ -281,7 +179,7 @@ if __name__ == '__main__':
         print 's2cr:', e
         sys.exit(1) 
 
-    print result
+    sys.stderr.write(result)
 
     out = file(out_file, 'w')
     out.write(result)
