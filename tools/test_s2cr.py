@@ -51,7 +51,7 @@ def test_function(name, code, args, function):
             reference = 0
         elif rd == '{Answer}':
             reference = 1
-        elif rd.startswith('{Answer}') and len(rd.split('^')) == 2 and is_numeric(rd.split('^')[1]):
+        elif rd.startswith('{Answer}') and len(rd.split('^')) == 2 and rd.split('^')[0] == '{Answer}' and is_numeric(rd.split('^')[1]):
             reference = int(rd.split('^')[1])
         else:
             assert False
@@ -199,6 +199,7 @@ test(
     #'xmov1', 'xmov2', 'xmov3',
     #'xadd1', 'xadd2', 'xadd3',
     #'xsub1', 'xsub2', 'xsub3'
-    'xshl'
+    #'xshl'
+    'xshr'
 )
 

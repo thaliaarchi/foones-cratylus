@@ -34,9 +34,8 @@ def xmov(src, dst, line1, line2):
         result.append('{%s} => {%s}{%s}^%u' % (line1, line2, dst, int(src)))
     else:
         result.append('{%s}{%s}^@ => {%s}' % (line1, dst, line1))
-        result.append('{%s}{%s}^@ => {%s,a}{,1}^@{%s}^@' % (line1, src, line1, dst))
+        result.append('{%s}{%s}^@ => {%s}{%s}^@{%s}^@' % (line1, src, line2, src, dst))
         result.append('{%s} => {%s}' % (line1, line2))
-        result.append('{%s,a}{,1}^@ => {%s}{%s}^@' % (line1, line2, src))
     return result
 
 def xadd(src, dst, line1, line2):
@@ -44,9 +43,8 @@ def xadd(src, dst, line1, line2):
     if is_numeric(src):
         result.append('{%s} => {%s}{%s}^%u' % (line1, line2, dst, int(src)))
     else:
-        result.append('{%s}{%s}^@ => {%s,a}{,1}^@{%s}^@' % (line1, src, line1, dst))
+        result.append('{%s}{%s}^@ => {%s}{%s}^@{%s}^@' % (line1, src, line2, src, dst))
         result.append('{%s} => {%s}' % (line1, line2))
-        result.append('{%s,a}{,1}^@ => {%s}{%s}^@' % (line1, line2, src))
     return result
 
 def xsub(src, dst, line1, line2):
@@ -58,21 +56,85 @@ def xsub(src, dst, line1, line2):
         result.append('{%s,b}{,1}^@ => {%s}' % (line1, line2))
         result.append('{%s,b} => {%s}' % (line1, line2))
     else:
-        result.append('{%s}{%s}^@ => {%s,a}{,1}^@{,2}^@' % (line1, src, line1))
+        result.append('{%s}{%s}^@ => {%s,a}{,1}^@{%s}^@' % (line1, src, line1, src))
         result.append('{%s} => {%s}' % (line1, line2))
         result.append('{%s,a}{%s}^@{,1}^@ => {%s,b}' % (line1, dst, line1))
         result.append('{%s,a} => {%s,b}' % (line1, line1))
-        result.append('{%s,b}{,1}^@ => {%s,c}' % (line1, line1))
-        result.append('{%s,b} => {%s,c}' % (line1, line1))
-        result.append('{%s,c}{,2}^@ => {%s}{%s}^@' % (line1, line2, src))
-        result.append('{%s,c} => {%s}' % (line1, line2))
+        result.append('{%s,b}{,1}^@ => {%s}' % (line1, line2))
+        result.append('{%s,b} => {%s}' % (line1, line2))
     return result
 
-def xshr(var, nbits, line1, line2):
-    pass
+def divmod_pow2(var, remainder, nbits, line1, line2):
+    result = []
+    if nbits == 0:
+        result.append('{%s} => {%s}' % (line1, line2))
+    else:
+        np = 2 ** nbits
+
+        # x var
+        # R    ,1
+        # y    ,2
+        # r    ,3
+        # z    ,4
+        # z_2  ,5
+        # x_2  ,6
+        #
+        ###
+        #
+        # r = 1 
+        # y = p
+        # while (true) {     ,a
+        #    z = y^2
+        #    if z > x: break
+        #    y = z
+        #    r = r^2
+        # }
+        # x = x - y
+        # R = R + r
+        #
+        # return R
+        #
+        ###
+
+        result.append('{%s}{%s} => {%s,0}{%s}' % (line1, var, line1, var))
+        result.append('{%s} => {%s,l}' % (line1, line1))
+        result.append('{%s,0} => {%s,a}{,2}^%u{,3}' % (line1, line1, np))
+
+        # z <- y^2
+        result.append('{%s,a}{,2}^@ => {%s,b}{,2}^@{,4}^@{,5}^@' % (line1, line1))
+        result.append('{%s,b}{,5}^@ => {%s,c}{,4}^@' % (line1, line1))
+
+        # z --> z_2
+        result.append('{%s,c}{,4}^@ => {%s,d}{,4}^@{,5}^@' % (line1, line1))
+        # x --> x_2
+        result.append('{%s,d}{%s}^@ => {%s,e}{%s}^@{,6}^@' % (line1, var, line1, var))
+        result.append('{%s,d} => {%s,e}' % (line1, line1))
+
+        # cmp x_2 z_2
+        result.append('{%s,e}{,5}^@{,6}^@ => {%s,f}' % (line1, line1))
+        result.append('{%s,f}{,5}^@ => {%s,j}' % (line1, line1))
+        result.append('{%s,f}{,6}^@ => {%s,f}' % (line1, line1))
+        result.append('{%s,f}{,2}^@ => {%s,g}' % (line1, line1))
+        result.append('{%s,f} => {%s,g}' % (line1, line1))
+        result.append('{%s,g}{,4}^@ => {%s,h}{,2}^@' % (line1, line1))
+        result.append('{%s,g} => {%s,h}' % (line1, line1))
+        result.append('{%s,h}{,3}^@ => {%s,i}{,5}^@{,6}^@' % (line1, line1))
+        result.append('{%s,h} => {%s,i}' % (line1, line1))
+        result.append('{%s,i}{,5}^@ => {%s,i}{,3}^@' % (line1, line1))
+        result.append('{%s,i}{,6}^@ => {%s,a}{,3}^@' % (line1, line1))
+        result.append('{%s,i} => {%s,a}' % (line1, line1))
+
+        result.append('{%s,j}{,4}^@ => {%s,j}' % (line1, line1))
+        result.append('{%s,j}{%s}^@{,2}^@ => {%s,k}' % (line1, var, line1))
+        result.append('{%s,k}{,2}^@ => {%s,l}{%s}^@' % (line1, line1, remainder))
+        result.append('{%s,k}{,3}^@ => {%s}{,1}^@' % (line1, line1))
+        result.append('{%s,l}{,3}^@ => {%s,l}' % (line1, line1))
+        result.append('{%s,l}{,1}^@ => {%s,l}{%s}^@' % (line1, line1, var))
+        result.append('{%s,l} => {%s}' % (line1, line2))
+    return result
 
 def xshl(var, nbits, line1, line2):
-    result = []    
+    result = []
     if nbits == 0:
         result.append('{%s} => {%s}' % (line1, line2))
     else:
@@ -195,7 +257,11 @@ def s_to_cratylus(string):
             nbits = op[2]
             if not is_numeric(nbits):
                 raise S2CrException('"xshr": second operand should be a number')
-            result.extend(xshr(var, int(nbits), numline, numline + 1))
+
+            varr = '%s,r' % (var,)
+            linez = '%s,z' % (numline,)
+            result.extend(divmod_pow2(var, varr, int(nbits), numline, linez))
+            result.extend(xzero(varr, linez, numline + 1))
 
         elif op[0] == 'xshl':
             var = op[1]
