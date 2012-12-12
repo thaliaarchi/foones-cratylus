@@ -40,13 +40,13 @@ def test_function(name, code, args, function):
         expected = function(*[value for arg_name, value in args])
         print '\texpected : %s' % (expected,)
 
-        os.system('rm -f test.s test.crm test.c test.bin')
-        f = file('test.s', 'w')
+        os.system('rm -f _test.s _test.crm _test.c _test.bin')
+        f = file('_test.s', 'w')
         f.write(instantiate(code, args))
         f.close()
-        os.system('./s2cr.py test.s 2>/dev/null')
-        #rd = os.popen('../cratylus.py test.cr -s').read().strip(' \t\r\n')
-        rd = os.popen('./crc.py test.crm 2>/dev/null && gcc -o test.bin test.c -lgmp -g -ggdb 2>/dev/null && ./test.bin 2>/dev/null').read().strip(' \t\r\n')
+        os.system('./s2cr.py _test.s 2>/dev/null')
+        #rd = os.popen('../cratylus.py _test.cr -s').read().strip(' \t\r\n')
+        rd = os.popen('./crc.py _test.crm 2>/dev/null && gcc -o _test.bin _test.c -lgmp -g -ggdb 2>/dev/null && ./_test.bin 2>/dev/null').read().strip(' \t\r\n')
         if rd == '1':
             reference = 0
         elif rd == '{Answer}':

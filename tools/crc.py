@@ -254,6 +254,9 @@ def crc(program):
         prog.append('\t\tif (mpz_cmp_ui(v[i], 0) > 0) {\n')
     else:
         prog.append('\t\tif (v[i] > 0) {\n')
+    prog.append('\t\t\tif (!z) {\n')
+    prog.append('\t\t\t\tprintf(" ");\n')
+    prog.append('\t\t\t}\n')
     prog.append('\t\t\tz = 0;\n')
     prog.append('\t\t\tprintf("%s", n[i]);\n')
     if OPTIONS['gmp']:
