@@ -983,9 +983,10 @@ The factorial program above gets compiled to the following C program:
 	#include <stdio.h>
 	#include <gmp.h>
 
-	#define VARS 39
 	#define CONSTANTS 2
 	mpz_t c[CONSTANTS];
+
+	#define VARS 39
 	mpz_t v[VARS];
 
 	char *n[] = {
