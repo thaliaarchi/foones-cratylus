@@ -112,63 +112,63 @@ if there is a way of writing programs using only univariate
 polynomials. Indeed, the following is also a Cratylus program that
 calculates factorials:
 
-	x - 17 => x^2 + 7x.
-	x^2 + 8x + 7 => x^2 - 2x - 3.
-	x + 7 => x - 18.
-	x^2 - 2x - 3 => x^2 - 13x - 14.
-	x - 3 => x + 6.
-	x^2 - 13x - 14 => x + 11.
-	x - 14 => x + 11.
-	x + 11 => x^2 - 17x - 38.
-	x - 19 => x^2 + 20x + 51.
-	x + 17 => x - 3.
-	x^2 + 8,x + 12 => x^2 - 7x - 18.
-	x + 6 => x - 2.
-	x^2 - 7x - 18 => x - 1.
-	x - 9 => x - 1.
-	x^2 - x => x^2 + 13x.
-	x - 1 => x - 5.
-	x^2 + 13x => x - 10.
-	x + 13 => x - 10.
-	x - 10 => x^2 + 24x + 95.
-	x + 19 => x^2 + 10x - 96.
-	x + 16 => x - 1.
-	x^2 - 25 => x^2 + 15x + 50.
-	x - 5 => x + 18.
-	x^2 + 15x + 50 => x - 12.
-	x + 10 => x - 12.
-	x - 12 => x^2 - 15x.
-	x - 15 => x - 5.
-	x + 18 => x + 6.
-	x^2 - 2x => x^2 + 12x.
-	x - 2 => x - 4.
-	x^2 + 12x => x + 8.
-	x + 12 => x + 8.
-	x + 8 => x - 2.
-	x^2 - 10x + 24 => x^2 - 14x + 48.
-	x - 4 => x + 4.
-	x^2 - 14x + 48 => x - 11.
-	x - 8 => x - 11.
-	x - 11 => x^2 + 15x.
-	x + 15 => x - 4.
-	x^2 + 7x + 12 => x^2 - 4x - 21.
-	x + 4 => x + 9.
-	x^2 - 4x - 21 => x - 13.
-	x - 7 => x - 13.
-	x - 13 => x^2 - 15x - 16.
-	x - 16 => x + 4.
-	x^2 + 10x + 9 => x + 14.
-	x + 9 => x + 14.
-	x + 14 => x + 7.
-	x - 18.
+    x - 17 => x^2 + 7x.
+    x^2 + 8x + 7 => x^2 - 2x - 3.
+    x + 7 => x - 18.
+    x^2 - 2x - 3 => x^2 - 13x - 14.
+    x - 3 => x + 6.
+    x^2 - 13x - 14 => x + 11.
+    x - 14 => x + 11.
+    x + 11 => x^2 - 17x - 38.
+    x - 19 => x^2 + 20x + 51.
+    x + 17 => x - 3.
+    x^2 + 8,x + 12 => x^2 - 7x - 18.
+    x + 6 => x - 2.
+    x^2 - 7x - 18 => x - 1.
+    x - 9 => x - 1.
+    x^2 - x => x^2 + 13x.
+    x - 1 => x - 5.
+    x^2 + 13x => x - 10.
+    x + 13 => x - 10.
+    x - 10 => x^2 + 24x + 95.
+    x + 19 => x^2 + 10x - 96.
+    x + 16 => x - 1.
+    x^2 - 25 => x^2 + 15x + 50.
+    x - 5 => x + 18.
+    x^2 + 15x + 50 => x - 12.
+    x + 10 => x - 12.
+    x - 12 => x^2 - 15x.
+    x - 15 => x - 5.
+    x + 18 => x + 6.
+    x^2 - 2x => x^2 + 12x.
+    x - 2 => x - 4.
+    x^2 + 12x => x + 8.
+    x + 12 => x + 8.
+    x + 8 => x - 2.
+    x^2 - 10x + 24 => x^2 - 14x + 48.
+    x - 4 => x + 4.
+    x^2 - 14x + 48 => x - 11.
+    x - 8 => x - 11.
+    x - 11 => x^2 + 15x.
+    x + 15 => x - 4.
+    x^2 + 7x + 12 => x^2 - 4x - 21.
+    x + 4 => x + 9.
+    x^2 - 4x - 21 => x - 13.
+    x - 7 => x - 13.
+    x - 13 => x^2 - 15x - 16.
+    x - 16 => x + 4.
+    x^2 + 10x + 9 => x + 14.
+    x + 9 => x + 14.
+    x + 14 => x + 7.
+    x - 18.
 
 For instance, on the following input:
 
-	? (x - 17) (x + 1)^3
+    ? (x - 17) (x + 1)^3
 
 it calculates 3! = 6:
 
-	x^6
+    x^6
 
 For reasons not so evident to me, this version is orders
 of magnitude slower. This probably relates with the fact
@@ -350,6 +350,22 @@ Cratylus displays the following final result:
 
     z^5 
 
+Intuitively, given a polynomial of the form `a x^n y^m`,
+the first rule transforms all `x`s into `z`s, one
+at a time. When there are no more `x`s to transform, the second
+rule applies, which transforms all `y`s to `z`s. After that,
+the third rule applies, which removes the redundant `a`.
+
+The chain of reduction steps would be:
+
+       a x^3 y^2
+    => a x^2 y^2 z
+    => a x   y^2 z^2
+    => a     y^2 z^3
+    => a     y   z^4
+    => a         z^5
+    =>           z^5
+
 When the `-v` command line option is used, Cratylus traces the steps of the reduction. 
 
     ----------------------------------------
@@ -386,7 +402,8 @@ When the `-v` command line option is used, Cratylus traces the steps of the redu
     Final result:
     z^5
 
-The following is a different way of presenting the above rules:
+The following is a different, more declarative, way of presenting
+the above rules:
 
     Add X => Add Z.
     Add Y => Add Z.
@@ -442,25 +459,58 @@ Example 4: multiplication
 The combination of these ideas allow us to write a procedure
 that does multiplication:
 
-    Mul X Y => Copy X Y.
-    Mul => Erase.
+    Mul X Y => Copy X Y.        # [1]
+    Mul => Erase.               # [2]
 
-    Copy Y => Copy Y1 Z.
-    Copy   => Rename.
+    Copy Y => Copy Y1 Z.        # [3]
+    Copy   => Rename.           # [4]
 
-    Rename Y1 => Rename Y.
-    Rename    => Del1.
+    Rename Y1 => Rename Y.      # [5]
+    Rename    => Del1.          # [6]
 
-    Del1 X   => Mul.
-    Del1     => Mul.
+    Del1 X   => Mul.            # [7]
+    Del1     => Mul.            # [8]
 
-    Erase Y  => Erase.
-    Erase.
+    Erase Y  => Erase.          # [9]
+    Erase.                      # [10]
 
 Toplevel interaction:
 
     ? Mul X^10 Y^9
     Z^90
+
+Intuitively, given a term of the form `Mul X^n Y^m`, we
+want to carry out the product `n * m`. For doing so, we
+add up `m` exactly `n` times.
+
+The variable `Z` is used as an accumulator.
+After the `i`-th iteration of the algorithm, the partial
+result will be `Mul X^(n - i) Y^m Z^(i * m)`.
+When `i` reaches `n`, we will have something like
+`Mul Y^m Z^(n * m)`, after which we only need to
+"clean" all the `Y` factors.
+
+More precisely, if `n = 0`, there are no `X` factors
+in the polynomial.
+So we have a polynomial of the form `Mul Y^m ...`, i.e.
+we want to multiply `m` times zero.
+Rule [2] applies, which takes us to rules [9] and [10].
+These erase, one by one, all occurrences of `Y`.
+
+If `n > 0`, rule [1] applies. Rules [3] and [4]
+are used to transform a term of the form
+`Mul X^(n - i) Y^m Z^(i * m)` into a term of the form
+`Mul X^(n - i) Y1^m Z^(i * m + m)`, that is, they copy the
+exponent of `Y` into `Y1` and also add the exponent
+of `Y` into the accumulator `Z`.
+
+After doing so, we need to rename `Y1` back to `Y`,
+to keep on with the iterations. Also, we delete one
+occurrence of `X`. After this we reach:
+
+    Mul X^(n - i - 1) Y^m Z^((i + 1) * m)
+
+and the invariant is maintained.
 
 Example 5: quotient and remainder
 ---------------------------------
@@ -609,6 +659,50 @@ When run, the answer is:
 
     {Z}^99
 
+For compiling an S program, we associate a variable `{k}` for
+representing the `k`-th instruction in the source program.
+For instance, if we are in the initial state, at the beginning
+of the program, the polynomial has `{0}` as a factor.
+This way we can represent an arbitrary state machine,
+where the only factor of the form `{k}` represents the
+instruction pointer / current state.
+
+The simplest example is a non-conditional jump from
+the `i`-th instruction to the `j`-th instruction, which is
+represented by the following rule:
+
+    {i} => {j}.
+
+If the `i`-th instruction increments the variable `X`,
+we get the following rule:
+
+    {i} => {i+1} {X}.
+
+Besides incrementing the exponent of `{X}` this rule
+also increments the instruction pointer. Decrementation
+is handled similarly, with the caveat that `{X}` might
+have a `0` exponent, in which case we just advance the
+instruction pointer:
+
+    {i} {X} => {i+1}.
+    {i} => {i+1}.
+
+Conditional jumps combine the previous ideas.
+A jump from the `i`-th instruction to the `j`-th
+instruction testing if `X` is zero (`jz`) is compiled
+as:
+
+    {i} {X} => {i+1} {X}.
+    {i} => {j}.
+
+The additional `{X}` in the right-hand side of the
+first rule is to avoid decrementing the value of `X`,
+since we only want to check if it is zero or not.
+The `jnz` instruction is symmetric:
+
+    {i} {X} => {j} {X}.
+    {i} => {i+1}.
+
 Cratylus simplifier
 -------------------
 
@@ -626,9 +720,6 @@ source program is put in 1-1 correspondence with an arbitrary set of primes.
 (More generally, a program in monomial form can be translated to an
 equivalent program if the set of variables is put in 1-1 correspondence
 with a set of different irreducible elements in a unique factorization domain).
-
-Given a Cratylus program in monomial form, `simp_cr.py -f file.cr` translates
-it to an equivalent FRACTRAN program.
 
 For instance, as we saw before, the S program which calculates the product
 of `X` and `Y` gave output to the following Cratylus program:
@@ -659,27 +750,9 @@ of `X` and `Y` gave output to the following Cratylus program:
 
     ? {0}{X}^11{Y}^9.
 
-The output of `simp_cr.py -f` in this case is:
-
-    # {0} --> 17
-    # {10} --> 37
-    # {11} --> 29
-    # {12} --> 11
-    # {13} --> 19
-    # {14} --> 59
-    # {1} --> 13
-    # {2} --> 43
-    # {3} --> 41
-    # {4} --> 61
-    # {5} --> 47
-    # {6} --> 3
-    # {7} --> 23
-    # {8} --> 31
-    # {9} --> 53
-    # {X} --> 5
-    # {Y1} --> 7
-    # {Y} --> 2
-    # {Z} --> 67
+Given a Cratylus program in monomial form, `tools/simp_cr.py -f file.cr` translates
+it to an equivalent FRACTRAN program. The output of `simp_cr.py -f` in
+this case is:
 
     85 => 65.
     17 => 11.
@@ -707,16 +780,89 @@ The output of `simp_cr.py -f` in this case is:
 
     ? 425000000000.
 
-The comments indicate the prime that corresponds to each variable in the
-original source program.
-Notice that the query `425000000000` is equivalent to
+Notice that, in the translation, the variable representing
+the initial state was `{0}` and got translated into the numeric
+constant `17`. The input variables, `{X}` and `{Y}` got
+translated into `5` and `2`.
+The query `425000000000` is equivalent to
 `17 * 5^11 * 2^9`. That is, we are asking for the product of
 `11` and `9`. The answer will be given as the exponent of
-`67`. Indeed we get:
+`{Z}`, which got translated into `67`. Indeed we get:
 
     6045127530961181628652411227196693490382260383969108811846856679868932815922570165203117478978324258618429876174558448218719550835202670830699753771294118292547613370699765040813403
 
 which is exactly `67^99`.
+
+The command `tools/simp_cr.py -u file.cr` transforms a Cratylus
+program in monomial form to an equivalent program using univariate
+polynomials. In our case:
+
+    x^2 + 2x - 8 => x^2 - 6x + 8.
+    x + 4 => x - 3.
+    x^2 - 3x - 4 => x^2 - 5x - 6.
+    x - 4 => x + 3.
+    x^2 - 5x - 6 => x + 7.
+    x - 6 => x + 7.
+    x + 7 => x^2 + 11x + 18.
+    x + 9 => x^2 + x - 90.
+    x - 9 => x - 4.
+    x^2 + 5x + 6 => x^2 + 8x + 12.
+    x + 3 => x + 5.
+    x^2 + 8x + 12 => x - 7.
+    x + 6 => x - 7.
+    x - 7 => x^2 + 9x + 8.
+    x + 8 => x + 3.
+    x^2 + 3x - 10 => x - 5.
+    x + 5 => x - 5.
+    x - 5 => x + 4.
+    x^2 - 2x - 3 => x - 1.
+    x - 3 => x - 1.
+    x^2 - 1 => x^2 - 2x - 3.
+    x - 1 => x - 8.
+    x - 8.
+
+In this case our query can be:
+
+    ? (x + 4) (x - 2)^2 (x + 1)^3.
+
+which asks for the product of `2` and `3`. We get the answer:
+
+    x^6 + 60x^5 + 1500x^4 + 20000x^3 + 150000x^2 + 600000x + 1000000
+
+which is `(x + 10)^6`.
+
+The command `tools/simp_cr.py -v file.cr` transforms a Cratylus
+program in monomial form to an equivalent program using variable
+names as short as possible. In our case we get:
+
+    dg => dh.
+    g => f.
+    ah => al.
+    h => e.
+    al => m.
+    l => m.
+    m => cq.
+    q => rs.
+    r => h.
+    ce => ck.
+    e => i.
+    ck => n.
+    k => n.
+    n => ao.
+    o => e.
+    di => j.
+    i => j.
+    j => g.
+    af => b.
+    f => b.
+    ab => af.
+    b => p.
+    p.
+
+And the query is:
+
+    ? g a^9 d^11
+    s^99
 
 S-with-macros to S compiler
 ---------------------------
@@ -969,7 +1115,7 @@ the `-v -t "{Z}" Z` command-line switch, we get our first example back:
     ? a^5H.
 
 Cratylus to C compiler
------------------------------
+----------------------
 
 The script `crc.py` compiles a Cratylus program in monomial form to an
 equivalent C program. The GNU Multiple Precision Library is used to represent
@@ -977,291 +1123,357 @@ polynomial exponents.
 
 The factorial program above gets compiled to the following C program:
 
-	/* Generated by the Cratylus to C compiler */
-	/* Compile with -lgmp */
+    /* Generated by the Cratylus to C compiler */
+    /* Compile with -lgmp */
 
-	#include <stdio.h>
-	#include <gmp.h>
+    #include <stdio.h>
+    #include <gmp.h>
 
-	#define CONSTANTS 2
-	mpz_t c[CONSTANTS];
+    #define CONSTANTS 2
+    mpz_t c[CONSTANTS];
 
-	#define VARS 39
-	mpz_t v[VARS];
+    #define VARS 39
+    mpz_t v[VARS];
 
-	char *n[] = {
-		"Z", "a", "b", "c", "e", "d", "g", "f", "i", "h", "k", "j", "m",
-		"l", "A", "B", "o", "n", "q", "p", "s", "r", "u", "t", "w", "v",
-		"y", "x", "z", "C", "E", "D", "G", "F", "I", "H", "K", "J", "L",
-	};
+    char *n[] = {
+        "Z", "a", "b", "c", "e", "d", "g", "f", "i", "h", "k", "j", "m",
+        "l", "A", "B", "o", "n", "q", "p", "s", "r", "u", "t", "w", "v",
+        "y", "x", "z", "C", "E", "D", "G", "F", "I", "H", "K", "J", "L",
+    };
 
-	int main()
-	{
-		int i, z;
+    int main()
+    {
+        int i, z;
 
-		/* Initialize constants */
-		mpz_init_set_str(c[0], "1", 10);
-		mpz_init_set_str(c[1], "5", 10);
+        /* Initialize constants */
+        mpz_init_set_str(c[0], "1", 10);
+        mpz_init_set_str(c[1], "5", 10);
 
-		/* Initialize variables */
-		for (i = 0; i < VARS; i++) {
-			mpz_init(v[i]);
-		}
+        /* Initialize variables */
+        for (i = 0; i < VARS; i++) {
+            mpz_init(v[i]);
+        }
 
-		/* Goal: ? a^5H */
-		mpz_add(v[1], v[1], c[1]);
-		mpz_add(v[35], v[35], c[0]);
+        /* Goal: ? a^5H */
+        mpz_add(v[1], v[1], c[1]);
+        mpz_add(v[35], v[35], c[0]);
 
-		while (1) {
-			if (0) {
-			} else if (mpz_cmp(v[35], c[0]) >= 0) {
-				/* H => mZ */
-				mpz_sub(v[35], v[35], c[0]);
-				mpz_add(v[12], v[12], c[0]);
-				mpz_add(v[0], v[0], c[0]);
-			} else if (mpz_cmp(v[1], c[0]) >= 0 && mpz_cmp(v[12], c[0]) >= 0) {
-				/* am => af */
-				mpz_sub(v[1], v[1], c[0]);
-				mpz_sub(v[12], v[12], c[0]);
-				mpz_add(v[1], v[1], c[0]);
-				mpz_add(v[7], v[7], c[0]);
-			} else if (mpz_cmp(v[12], c[0]) >= 0) {
-				/* m => J */
-				mpz_sub(v[12], v[12], c[0]);
-				mpz_add(v[37], v[37], c[0]);
-			} else if (mpz_cmp(v[1], c[0]) >= 0 && mpz_cmp(v[7], c[0]) >= 0) {
-				/* af => aB */
-				mpz_sub(v[1], v[1], c[0]);
-				mpz_sub(v[7], v[7], c[0]);
-				mpz_add(v[1], v[1], c[0]);
-				mpz_add(v[15], v[15], c[0]);
-			} else if (mpz_cmp(v[7], c[0]) >= 0) {
-				/* f => k */
-				mpz_sub(v[7], v[7], c[0]);
-				mpz_add(v[10], v[10], c[0]);
-			} else if (mpz_cmp(v[1], c[0]) >= 0 && mpz_cmp(v[15], c[0]) >= 0) {
-				/* aB => u */
-				mpz_sub(v[1], v[1], c[0]);
-				mpz_sub(v[15], v[15], c[0]);
-				mpz_add(v[22], v[22], c[0]);
-			} else if (mpz_cmp(v[15], c[0]) >= 0) {
-				/* B => u */
-				mpz_sub(v[15], v[15], c[0]);
-				mpz_add(v[22], v[22], c[0]);
-			} else if (mpz_cmp(v[22], c[0]) >= 0) {
-				/* u => cL */
-				mpz_sub(v[22], v[22], c[0]);
-				mpz_add(v[3], v[3], c[0]);
-				mpz_add(v[38], v[38], c[0]);
-			} else if (mpz_cmp(v[38], c[0]) >= 0) {
-				/* L => eG */
-				mpz_sub(v[38], v[38], c[0]);
-				mpz_add(v[4], v[4], c[0]);
-				mpz_add(v[32], v[32], c[0]);
-			} else if (mpz_cmp(v[32], c[0]) >= 0) {
-				/* G => f */
-				mpz_sub(v[32], v[32], c[0]);
-				mpz_add(v[7], v[7], c[0]);
-			} else if (mpz_cmp(v[3], c[0]) >= 0 && mpz_cmp(v[10], c[0]) >= 0) {
-				/* ck => cr */
-				mpz_sub(v[3], v[3], c[0]);
-				mpz_sub(v[10], v[10], c[0]);
-				mpz_add(v[3], v[3], c[0]);
-				mpz_add(v[21], v[21], c[0]);
-			} else if (mpz_cmp(v[10], c[0]) >= 0) {
-				/* k => d */
-				mpz_sub(v[10], v[10], c[0]);
-				mpz_add(v[5], v[5], c[0]);
-			} else if (mpz_cmp(v[3], c[0]) >= 0 && mpz_cmp(v[21], c[0]) >= 0) {
-				/* cr => b */
-				mpz_sub(v[3], v[3], c[0]);
-				mpz_sub(v[21], v[21], c[0]);
-				mpz_add(v[2], v[2], c[0]);
-			} else if (mpz_cmp(v[21], c[0]) >= 0) {
-				/* r => b */
-				mpz_sub(v[21], v[21], c[0]);
-				mpz_add(v[2], v[2], c[0]);
-			} else if (mpz_cmp(v[2], c[0]) >= 0 && mpz_cmp(v[0], c[0]) >= 0) {
-				/* bZ => yZ */
-				mpz_sub(v[2], v[2], c[0]);
-				mpz_sub(v[0], v[0], c[0]);
-				mpz_add(v[26], v[26], c[0]);
-				mpz_add(v[0], v[0], c[0]);
-			} else if (mpz_cmp(v[2], c[0]) >= 0) {
-				/* b => j */
-				mpz_sub(v[2], v[2], c[0]);
-				mpz_add(v[11], v[11], c[0]);
-			} else if (mpz_cmp(v[26], c[0]) >= 0 && mpz_cmp(v[0], c[0]) >= 0) {
-				/* yZ => t */
-				mpz_sub(v[26], v[26], c[0]);
-				mpz_sub(v[0], v[0], c[0]);
-				mpz_add(v[23], v[23], c[0]);
-			} else if (mpz_cmp(v[26], c[0]) >= 0) {
-				/* y => t */
-				mpz_sub(v[26], v[26], c[0]);
-				mpz_add(v[23], v[23], c[0]);
-			} else if (mpz_cmp(v[23], c[0]) >= 0) {
-				/* t => iK */
-				mpz_sub(v[23], v[23], c[0]);
-				mpz_add(v[8], v[8], c[0]);
-				mpz_add(v[36], v[36], c[0]);
-			} else if (mpz_cmp(v[36], c[0]) >= 0) {
-				/* K => lE */
-				mpz_sub(v[36], v[36], c[0]);
-				mpz_add(v[13], v[13], c[0]);
-				mpz_add(v[30], v[30], c[0]);
-			} else if (mpz_cmp(v[30], c[0]) >= 0) {
-				/* E => b */
-				mpz_sub(v[30], v[30], c[0]);
-				mpz_add(v[2], v[2], c[0]);
-			} else if (mpz_cmp(v[8], c[0]) >= 0 && mpz_cmp(v[11], c[0]) >= 0) {
-				/* ij => is */
-				mpz_sub(v[8], v[8], c[0]);
-				mpz_sub(v[11], v[11], c[0]);
-				mpz_add(v[8], v[8], c[0]);
-				mpz_add(v[20], v[20], c[0]);
-			} else if (mpz_cmp(v[11], c[0]) >= 0) {
-				/* j => I */
-				mpz_sub(v[11], v[11], c[0]);
-				mpz_add(v[34], v[34], c[0]);
-			} else if (mpz_cmp(v[8], c[0]) >= 0 && mpz_cmp(v[20], c[0]) >= 0) {
-				/* is => x */
-				mpz_sub(v[8], v[8], c[0]);
-				mpz_sub(v[20], v[20], c[0]);
-				mpz_add(v[27], v[27], c[0]);
-			} else if (mpz_cmp(v[20], c[0]) >= 0) {
-				/* s => x */
-				mpz_sub(v[20], v[20], c[0]);
-				mpz_add(v[27], v[27], c[0]);
-			} else if (mpz_cmp(v[27], c[0]) >= 0) {
-				/* x => DZ */
-				mpz_sub(v[27], v[27], c[0]);
-				mpz_add(v[31], v[31], c[0]);
-				mpz_add(v[0], v[0], c[0]);
-			} else if (mpz_cmp(v[31], c[0]) >= 0) {
-				/* D => j */
-				mpz_sub(v[31], v[31], c[0]);
-				mpz_add(v[11], v[11], c[0]);
-			} else if (mpz_cmp(v[34], c[0]) >= 0) {
-				/* I => k */
-				mpz_sub(v[34], v[34], c[0]);
-				mpz_add(v[10], v[10], c[0]);
-			} else if (mpz_cmp(v[5], c[0]) >= 0 && mpz_cmp(v[0], c[0]) >= 0) {
-				/* dZ => wZ */
-				mpz_sub(v[5], v[5], c[0]);
-				mpz_sub(v[0], v[0], c[0]);
-				mpz_add(v[24], v[24], c[0]);
-				mpz_add(v[0], v[0], c[0]);
-			} else if (mpz_cmp(v[5], c[0]) >= 0) {
-				/* d => h */
-				mpz_sub(v[5], v[5], c[0]);
-				mpz_add(v[9], v[9], c[0]);
-			} else if (mpz_cmp(v[24], c[0]) >= 0 && mpz_cmp(v[0], c[0]) >= 0) {
-				/* wZ => o */
-				mpz_sub(v[24], v[24], c[0]);
-				mpz_sub(v[0], v[0], c[0]);
-				mpz_add(v[16], v[16], c[0]);
-			} else if (mpz_cmp(v[24], c[0]) >= 0) {
-				/* w => o */
-				mpz_sub(v[24], v[24], c[0]);
-				mpz_add(v[16], v[16], c[0]);
-			} else if (mpz_cmp(v[16], c[0]) >= 0) {
-				/* o => d */
-				mpz_sub(v[16], v[16], c[0]);
-				mpz_add(v[5], v[5], c[0]);
-			} else if (mpz_cmp(v[9], c[0]) >= 0 && mpz_cmp(v[13], c[0]) >= 0) {
-				/* hl => lp */
-				mpz_sub(v[9], v[9], c[0]);
-				mpz_sub(v[13], v[13], c[0]);
-				mpz_add(v[13], v[13], c[0]);
-				mpz_add(v[19], v[19], c[0]);
-			} else if (mpz_cmp(v[9], c[0]) >= 0) {
-				/* h => g */
-				mpz_sub(v[9], v[9], c[0]);
-				mpz_add(v[6], v[6], c[0]);
-			} else if (mpz_cmp(v[13], c[0]) >= 0 && mpz_cmp(v[19], c[0]) >= 0) {
-				/* lp => v */
-				mpz_sub(v[13], v[13], c[0]);
-				mpz_sub(v[19], v[19], c[0]);
-				mpz_add(v[25], v[25], c[0]);
-			} else if (mpz_cmp(v[19], c[0]) >= 0) {
-				/* p => v */
-				mpz_sub(v[19], v[19], c[0]);
-				mpz_add(v[25], v[25], c[0]);
-			} else if (mpz_cmp(v[25], c[0]) >= 0) {
-				/* v => CZ */
-				mpz_sub(v[25], v[25], c[0]);
-				mpz_add(v[29], v[29], c[0]);
-				mpz_add(v[0], v[0], c[0]);
-			} else if (mpz_cmp(v[29], c[0]) >= 0) {
-				/* C => h */
-				mpz_sub(v[29], v[29], c[0]);
-				mpz_add(v[9], v[9], c[0]);
-			} else if (mpz_cmp(v[4], c[0]) >= 0 && mpz_cmp(v[6], c[0]) >= 0) {
-				/* eg => en */
-				mpz_sub(v[4], v[4], c[0]);
-				mpz_sub(v[6], v[6], c[0]);
-				mpz_add(v[4], v[4], c[0]);
-				mpz_add(v[17], v[17], c[0]);
-			} else if (mpz_cmp(v[6], c[0]) >= 0) {
-				/* g => q */
-				mpz_sub(v[6], v[6], c[0]);
-				mpz_add(v[18], v[18], c[0]);
-			} else if (mpz_cmp(v[4], c[0]) >= 0 && mpz_cmp(v[17], c[0]) >= 0) {
-				/* en => z */
-				mpz_sub(v[4], v[4], c[0]);
-				mpz_sub(v[17], v[17], c[0]);
-				mpz_add(v[28], v[28], c[0]);
-			} else if (mpz_cmp(v[17], c[0]) >= 0) {
-				/* n => z */
-				mpz_sub(v[17], v[17], c[0]);
-				mpz_add(v[28], v[28], c[0]);
-			} else if (mpz_cmp(v[28], c[0]) >= 0) {
-				/* z => aF */
-				mpz_sub(v[28], v[28], c[0]);
-				mpz_add(v[1], v[1], c[0]);
-				mpz_add(v[33], v[33], c[0]);
-			} else if (mpz_cmp(v[33], c[0]) >= 0) {
-				/* F => g */
-				mpz_sub(v[33], v[33], c[0]);
-				mpz_add(v[6], v[6], c[0]);
-			} else if (mpz_cmp(v[1], c[0]) >= 0 && mpz_cmp(v[18], c[0]) >= 0) {
-				/* aq => A */
-				mpz_sub(v[1], v[1], c[0]);
-				mpz_sub(v[18], v[18], c[0]);
-				mpz_add(v[14], v[14], c[0]);
-			} else if (mpz_cmp(v[18], c[0]) >= 0) {
-				/* q => A */
-				mpz_sub(v[18], v[18], c[0]);
-				mpz_add(v[14], v[14], c[0]);
-			} else if (mpz_cmp(v[14], c[0]) >= 0) {
-				/* A => m */
-				mpz_sub(v[14], v[14], c[0]);
-				mpz_add(v[12], v[12], c[0]);
-			} else if (mpz_cmp(v[37], c[0]) >= 0) {
-				/* J */
-				mpz_sub(v[37], v[37], c[0]);
-			} else {
-				break;
-			}
-		}
+        while (1) {
+            if (0) {
+            } else if (mpz_cmp(v[35], c[0]) >= 0) {
+                /* H => mZ */
+                mpz_sub(v[35], v[35], c[0]);
+                mpz_add(v[12], v[12], c[0]);
+                mpz_add(v[0], v[0], c[0]);
+            } else if (mpz_cmp(v[1], c[0]) >= 0 && mpz_cmp(v[12], c[0]) >= 0) {
+                /* am => af */
+                mpz_sub(v[1], v[1], c[0]);
+                mpz_sub(v[12], v[12], c[0]);
+                mpz_add(v[1], v[1], c[0]);
+                mpz_add(v[7], v[7], c[0]);
+            } else if (mpz_cmp(v[12], c[0]) >= 0) {
+                /* m => J */
+                mpz_sub(v[12], v[12], c[0]);
+                mpz_add(v[37], v[37], c[0]);
+            } else if (mpz_cmp(v[1], c[0]) >= 0 && mpz_cmp(v[7], c[0]) >= 0) {
+                /* af => aB */
+                mpz_sub(v[1], v[1], c[0]);
+                mpz_sub(v[7], v[7], c[0]);
+                mpz_add(v[1], v[1], c[0]);
+                mpz_add(v[15], v[15], c[0]);
+            } else if (mpz_cmp(v[7], c[0]) >= 0) {
+                /* f => k */
+                mpz_sub(v[7], v[7], c[0]);
+                mpz_add(v[10], v[10], c[0]);
+            } else if (mpz_cmp(v[1], c[0]) >= 0 && mpz_cmp(v[15], c[0]) >= 0) {
+                /* aB => u */
+                mpz_sub(v[1], v[1], c[0]);
+                mpz_sub(v[15], v[15], c[0]);
+                mpz_add(v[22], v[22], c[0]);
+            } else if (mpz_cmp(v[15], c[0]) >= 0) {
+                /* B => u */
+                mpz_sub(v[15], v[15], c[0]);
+                mpz_add(v[22], v[22], c[0]);
+            } else if (mpz_cmp(v[22], c[0]) >= 0) {
+                /* u => cL */
+                mpz_sub(v[22], v[22], c[0]);
+                mpz_add(v[3], v[3], c[0]);
+                mpz_add(v[38], v[38], c[0]);
+            } else if (mpz_cmp(v[38], c[0]) >= 0) {
+                /* L => eG */
+                mpz_sub(v[38], v[38], c[0]);
+                mpz_add(v[4], v[4], c[0]);
+                mpz_add(v[32], v[32], c[0]);
+            } else if (mpz_cmp(v[32], c[0]) >= 0) {
+                /* G => f */
+                mpz_sub(v[32], v[32], c[0]);
+                mpz_add(v[7], v[7], c[0]);
+            } else if (mpz_cmp(v[3], c[0]) >= 0 && mpz_cmp(v[10], c[0]) >= 0) {
+                /* ck => cr */
+                mpz_sub(v[3], v[3], c[0]);
+                mpz_sub(v[10], v[10], c[0]);
+                mpz_add(v[3], v[3], c[0]);
+                mpz_add(v[21], v[21], c[0]);
+            } else if (mpz_cmp(v[10], c[0]) >= 0) {
+                /* k => d */
+                mpz_sub(v[10], v[10], c[0]);
+                mpz_add(v[5], v[5], c[0]);
+            } else if (mpz_cmp(v[3], c[0]) >= 0 && mpz_cmp(v[21], c[0]) >= 0) {
+                /* cr => b */
+                mpz_sub(v[3], v[3], c[0]);
+                mpz_sub(v[21], v[21], c[0]);
+                mpz_add(v[2], v[2], c[0]);
+            } else if (mpz_cmp(v[21], c[0]) >= 0) {
+                /* r => b */
+                mpz_sub(v[21], v[21], c[0]);
+                mpz_add(v[2], v[2], c[0]);
+            } else if (mpz_cmp(v[2], c[0]) >= 0 && mpz_cmp(v[0], c[0]) >= 0) {
+                /* bZ => yZ */
+                mpz_sub(v[2], v[2], c[0]);
+                mpz_sub(v[0], v[0], c[0]);
+                mpz_add(v[26], v[26], c[0]);
+                mpz_add(v[0], v[0], c[0]);
+            } else if (mpz_cmp(v[2], c[0]) >= 0) {
+                /* b => j */
+                mpz_sub(v[2], v[2], c[0]);
+                mpz_add(v[11], v[11], c[0]);
+            } else if (mpz_cmp(v[26], c[0]) >= 0 && mpz_cmp(v[0], c[0]) >= 0) {
+                /* yZ => t */
+                mpz_sub(v[26], v[26], c[0]);
+                mpz_sub(v[0], v[0], c[0]);
+                mpz_add(v[23], v[23], c[0]);
+            } else if (mpz_cmp(v[26], c[0]) >= 0) {
+                /* y => t */
+                mpz_sub(v[26], v[26], c[0]);
+                mpz_add(v[23], v[23], c[0]);
+            } else if (mpz_cmp(v[23], c[0]) >= 0) {
+                /* t => iK */
+                mpz_sub(v[23], v[23], c[0]);
+                mpz_add(v[8], v[8], c[0]);
+                mpz_add(v[36], v[36], c[0]);
+            } else if (mpz_cmp(v[36], c[0]) >= 0) {
+                /* K => lE */
+                mpz_sub(v[36], v[36], c[0]);
+                mpz_add(v[13], v[13], c[0]);
+                mpz_add(v[30], v[30], c[0]);
+            } else if (mpz_cmp(v[30], c[0]) >= 0) {
+                /* E => b */
+                mpz_sub(v[30], v[30], c[0]);
+                mpz_add(v[2], v[2], c[0]);
+            } else if (mpz_cmp(v[8], c[0]) >= 0 && mpz_cmp(v[11], c[0]) >= 0) {
+                /* ij => is */
+                mpz_sub(v[8], v[8], c[0]);
+                mpz_sub(v[11], v[11], c[0]);
+                mpz_add(v[8], v[8], c[0]);
+                mpz_add(v[20], v[20], c[0]);
+            } else if (mpz_cmp(v[11], c[0]) >= 0) {
+                /* j => I */
+                mpz_sub(v[11], v[11], c[0]);
+                mpz_add(v[34], v[34], c[0]);
+            } else if (mpz_cmp(v[8], c[0]) >= 0 && mpz_cmp(v[20], c[0]) >= 0) {
+                /* is => x */
+                mpz_sub(v[8], v[8], c[0]);
+                mpz_sub(v[20], v[20], c[0]);
+                mpz_add(v[27], v[27], c[0]);
+            } else if (mpz_cmp(v[20], c[0]) >= 0) {
+                /* s => x */
+                mpz_sub(v[20], v[20], c[0]);
+                mpz_add(v[27], v[27], c[0]);
+            } else if (mpz_cmp(v[27], c[0]) >= 0) {
+                /* x => DZ */
+                mpz_sub(v[27], v[27], c[0]);
+                mpz_add(v[31], v[31], c[0]);
+                mpz_add(v[0], v[0], c[0]);
+            } else if (mpz_cmp(v[31], c[0]) >= 0) {
+                /* D => j */
+                mpz_sub(v[31], v[31], c[0]);
+                mpz_add(v[11], v[11], c[0]);
+            } else if (mpz_cmp(v[34], c[0]) >= 0) {
+                /* I => k */
+                mpz_sub(v[34], v[34], c[0]);
+                mpz_add(v[10], v[10], c[0]);
+            } else if (mpz_cmp(v[5], c[0]) >= 0 && mpz_cmp(v[0], c[0]) >= 0) {
+                /* dZ => wZ */
+                mpz_sub(v[5], v[5], c[0]);
+                mpz_sub(v[0], v[0], c[0]);
+                mpz_add(v[24], v[24], c[0]);
+                mpz_add(v[0], v[0], c[0]);
+            } else if (mpz_cmp(v[5], c[0]) >= 0) {
+                /* d => h */
+                mpz_sub(v[5], v[5], c[0]);
+                mpz_add(v[9], v[9], c[0]);
+            } else if (mpz_cmp(v[24], c[0]) >= 0 && mpz_cmp(v[0], c[0]) >= 0) {
+                /* wZ => o */
+                mpz_sub(v[24], v[24], c[0]);
+                mpz_sub(v[0], v[0], c[0]);
+                mpz_add(v[16], v[16], c[0]);
+            } else if (mpz_cmp(v[24], c[0]) >= 0) {
+                /* w => o */
+                mpz_sub(v[24], v[24], c[0]);
+                mpz_add(v[16], v[16], c[0]);
+            } else if (mpz_cmp(v[16], c[0]) >= 0) {
+                /* o => d */
+                mpz_sub(v[16], v[16], c[0]);
+                mpz_add(v[5], v[5], c[0]);
+            } else if (mpz_cmp(v[9], c[0]) >= 0 && mpz_cmp(v[13], c[0]) >= 0) {
+                /* hl => lp */
+                mpz_sub(v[9], v[9], c[0]);
+                mpz_sub(v[13], v[13], c[0]);
+                mpz_add(v[13], v[13], c[0]);
+                mpz_add(v[19], v[19], c[0]);
+            } else if (mpz_cmp(v[9], c[0]) >= 0) {
+                /* h => g */
+                mpz_sub(v[9], v[9], c[0]);
+                mpz_add(v[6], v[6], c[0]);
+            } else if (mpz_cmp(v[13], c[0]) >= 0 && mpz_cmp(v[19], c[0]) >= 0) {
+                /* lp => v */
+                mpz_sub(v[13], v[13], c[0]);
+                mpz_sub(v[19], v[19], c[0]);
+                mpz_add(v[25], v[25], c[0]);
+            } else if (mpz_cmp(v[19], c[0]) >= 0) {
+                /* p => v */
+                mpz_sub(v[19], v[19], c[0]);
+                mpz_add(v[25], v[25], c[0]);
+            } else if (mpz_cmp(v[25], c[0]) >= 0) {
+                /* v => CZ */
+                mpz_sub(v[25], v[25], c[0]);
+                mpz_add(v[29], v[29], c[0]);
+                mpz_add(v[0], v[0], c[0]);
+            } else if (mpz_cmp(v[29], c[0]) >= 0) {
+                /* C => h */
+                mpz_sub(v[29], v[29], c[0]);
+                mpz_add(v[9], v[9], c[0]);
+            } else if (mpz_cmp(v[4], c[0]) >= 0 && mpz_cmp(v[6], c[0]) >= 0) {
+                /* eg => en */
+                mpz_sub(v[4], v[4], c[0]);
+                mpz_sub(v[6], v[6], c[0]);
+                mpz_add(v[4], v[4], c[0]);
+                mpz_add(v[17], v[17], c[0]);
+            } else if (mpz_cmp(v[6], c[0]) >= 0) {
+                /* g => q */
+                mpz_sub(v[6], v[6], c[0]);
+                mpz_add(v[18], v[18], c[0]);
+            } else if (mpz_cmp(v[4], c[0]) >= 0 && mpz_cmp(v[17], c[0]) >= 0) {
+                /* en => z */
+                mpz_sub(v[4], v[4], c[0]);
+                mpz_sub(v[17], v[17], c[0]);
+                mpz_add(v[28], v[28], c[0]);
+            } else if (mpz_cmp(v[17], c[0]) >= 0) {
+                /* n => z */
+                mpz_sub(v[17], v[17], c[0]);
+                mpz_add(v[28], v[28], c[0]);
+            } else if (mpz_cmp(v[28], c[0]) >= 0) {
+                /* z => aF */
+                mpz_sub(v[28], v[28], c[0]);
+                mpz_add(v[1], v[1], c[0]);
+                mpz_add(v[33], v[33], c[0]);
+            } else if (mpz_cmp(v[33], c[0]) >= 0) {
+                /* F => g */
+                mpz_sub(v[33], v[33], c[0]);
+                mpz_add(v[6], v[6], c[0]);
+            } else if (mpz_cmp(v[1], c[0]) >= 0 && mpz_cmp(v[18], c[0]) >= 0) {
+                /* aq => A */
+                mpz_sub(v[1], v[1], c[0]);
+                mpz_sub(v[18], v[18], c[0]);
+                mpz_add(v[14], v[14], c[0]);
+            } else if (mpz_cmp(v[18], c[0]) >= 0) {
+                /* q => A */
+                mpz_sub(v[18], v[18], c[0]);
+                mpz_add(v[14], v[14], c[0]);
+            } else if (mpz_cmp(v[14], c[0]) >= 0) {
+                /* A => m */
+                mpz_sub(v[14], v[14], c[0]);
+                mpz_add(v[12], v[12], c[0]);
+            } else if (mpz_cmp(v[37], c[0]) >= 0) {
+                /* J */
+                mpz_sub(v[37], v[37], c[0]);
+            } else {
+                break;
+            }
+        }
 
-		z = 1;
-		for (i = 0; i < VARS; i++) {
-			if (mpz_cmp_ui(v[i], 0) > 0) {
-				z = 0;
-				printf("%s", n[i]);
-				if (mpz_cmp_ui(v[i], 1) > 0) {
-					printf("^");
-					mpz_out_str(stdout, 10, v[i]);
-				}
-			}
-		}
-		if (z) {
-			printf("1");
-		}
-		printf("\n");
+        z = 1;
+        for (i = 0; i < VARS; i++) {
+            if (mpz_cmp_ui(v[i], 0) > 0) {
+                z = 0;
+                printf("%s", n[i]);
+                if (mpz_cmp_ui(v[i], 1) > 0) {
+                    printf("^");
+                    mpz_out_str(stdout, 10, v[i]);
+                }
+            }
+        }
+        if (z) {
+            printf("1");
+        }
+        printf("\n");
 
-		return 0;
-	}
+        return 0;
+    }
+
+Cratylus^@: a more efficient variant of Cratylus
+------------------------------------------------
+
+As said before, Cratylus programs are very inefficient, since
+we are restricted to representing and working with natural numbers
+in unary.
+
+To mitigate this problem, we propose the Cratylus^@
+variant of Cratylus. Cratylus^@ programs are restricted to
+be written in monomial form. Besides the usual kinds of rules,
+Cratylus^@ allows one to refer to the maximal power
+that divides a given monomial.
+
+Polynomials are now always a product of variables:
+
+    x1^p1 ... xN^pN => y1^q1 ... yM^qM
+
+The powers `p_i` and `q_i` can be either a natural number or the
+special symbol `@`.
+
+When trying to apply a rule to a given goal, Cratylus^@ binds `@`
+to the maximal non-zero natural number that makes the left-hand
+side divide the goal, then proceeds with `@` bound to that value.
+
+For instance the Cratylus^@ program:
+
+    x^@ => y^@.
+
+Rewrites `x^42` in one step to `y^42`.
+That allows us to write an efficient addition routine:
+
+    Add X^@ => Z^@.
+    Add Y^@ => Y^@.
+    Add.
+
+Note that if there is more than one occurrence of `@` at the
+left-hand side, Cratylus^@ will bind `@` to the least of the
+exponents. For instance, in this case:
+
+    X^@ Y^@ => Z^@.
+
+Cratylus^@ will rewrite `X^10 Y^8` as `X^2 Z^8`.
+
+With this modifications, it is possible to write an actually
+efficient factorial program:
+
+	b^@s=>s.sx^@=>b^@x^@K.s=>K.l^@K=>Q.K=>Q.Q=>lW.bW=>r.W=>r.br=>bAb.r=>R.Ab=>bq.
+	a^@q=>q.b^@q=>a^@b^@k.q=>k.e^@k=>k.kl^@=>e^@l^@C.k=>C.p^@C=>w.C=>w.aw=>aV.w=>P.
+	u^@V=>o.V=>o.ao=>aZ.o=>g.Z=>c^2dE.c^@E=>c^@f^@i^@Aa.f^@Aa=>i^@Y.i^@Y=>f^@i^@L.
+	a^@L=>a^@v^@M.L=>M.f^@v^@M=>m.f^@m=>I.mv^@=>m.c^@m=>D.m=>D.i^@D=>c^@H.D=>H.
+	d^@H=>f^@hv^@.H=>h.f^@h=>d^@h.hv^@=>d^@E.h=>E.i^@I=>I.a^@c^@I=>O.c^@O=>gu^@.
+	d^@O=>ot^@.d^@g=>g.gt^@=>a^@g.g=>X.uX=>uN.X=>B.e^@N=>e^@p^@B.N=>B.B=>nt.
+	e^@nt=>c^@d^@F.nt^@=>T.n=>T.c^@F=>e^@F.d^@F=>e^@n.T=>w.u^@P=>J.P=>J.e^@J=>A.
+	J=>A.a^@A=>j.A=>j.jl^@=>j.jp^@=>l^@p^@y.j=>y.by=>G.y=>G.bG=>U.G=>U.U=>r.p^@R=>z.
+	R=>z.x^@z=>S.z=>S.S.
+
+    ? s x^1000.
+
+And the result is:
+
+	l^402387260077093773543702433923003985719374864210714632543799910429938512398629020592044208486969404800479988610197196058631666872994808558901323829669944590997424504087073759918823627727188732519779505950995276120874975462497043601418278094646496291056393887437886487337119181045825783647849977012476632889835955735432513185323958463075557409114262417474349347553428646576611667797396668820291207379143853719588249808126867838374559731746136085379534524221586593201928090878297308431392844403281231558611036976801357304216168747609675871348312025478589320767169132448426236131412508780208000261683151027341827977704784635868170164365024153691398281264810213092761244896359928705114964975419909342221566832572080821333186116811553615836546984046708975602900950537616475847728421889679646244945160765353408198901385442487984959953319101723355556602139450399736280750137837615307127761926849034352625200015888535147331611702103968175921510907788019393178114194545257223865541461062892187960223838971476088506276862967146674697562911234082439208160153780889893964518263243671616762179168909779911903754031274622289988005195444414282012187361745992642956581746628302955570299024324153181617210465832036786906117260158783520751516284225540265170483304226143974286933061690897968482590125458327168226458066526769958652682272807075781391858178889652208164348344825993266043367660176999612831860788386150279465955131156552036093988180612138558600301435694527224206344631797460594682573103790084024432438465657245014402821885252470935190620929023136493273497565513958720559654228749774011413346962715422845862377387538230483865688976461927383814900140767310446640259899490222221765904339901886018566526485061799702356193897017860040811889729918311021171229845901641921068884387121855646124960798722908519296819372388642614839657382291123125024186649353143970137428531926649875337218940694281434118520158014123344828015051399694290153483077644569099073152433278288269864602789864321139083506217095002597389863554277196742822248757586765752344220207573630569498825087968928162753848863396909959826280956121450994871701244516461260379029309120889086942028510640182154399457156805941872748998094254742173582401063677404595741785160829230135358081840096996372524230560855903700624271243416909004153690105933983835777939410970027753472000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
+Notice that currently the `cratylus.py` script *does not* implement
+the Cratylus^@ language. Use `tools/crc.py` to compile a Cratylus^@
+program into C.
 
