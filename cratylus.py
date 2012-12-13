@@ -197,6 +197,58 @@ class Poly(object):
         assert q * d + r == self
         return q, r
 
+    def rewrite_maximal(self, head, rule_clauses):
+        if not self.is_monomial():
+            raise CratylusException('goal in a Cratylus^@ program should be in monomial form: %s' % (self,))
+
+        if not head.is_monomial():
+            raise CratylusException('rule head in a Cratylus^@ program should be in monomial form: %s' % (head,))
+
+        goal_key, goal_coef = self._coeffs.items()[0]
+        if goal_coef != 1:
+            raise CratylusException('goal in a Cratylus^@ program should be in monomial form: %s' % (self,))
+
+        head_key, head_coef = head._coeffs.items()[0]
+        if head_coef != 1:
+            raise CratylusException('rule head in a Cratylus^@ program should be in monomial form: %s' % (head,))
+
+        goal_key = dict(goal_key)
+        head_key = dict(head_key)
+
+        mxl_power = None
+        for var, power in head_key.items():
+            goal_power = goal_key.get(var, 0)
+            if power == MXL_POWER:
+                if mxl_power is None or goal_power < mxl_power:
+                    mxl_power = goal_power
+                power = 1
+            if goal_power < power:
+                return None
+
+        result = {}
+        for var, power in goal_key.items():
+            head_power = head_key.get(var, 0)
+            if head_power == MXL_POWER:
+                head_power = mxl_power
+            result[var] = power - head_power
+
+        for clause in rule_clauses:
+            if not clause.is_monomial():
+                raise CratylusException('rule body in a Cratylus^@ program should be in monomial form: %s' % (clause,))
+
+            clause_key, clause_coef = clause._coeffs.items()[0]
+            if clause_coef != 1:
+                raise CratylusException('rule body in a Cratylus^@ program should be in monomial form: %s' % (clause,))
+
+            clause_key = dict(clause_key)
+            for var, power in clause_key.items():
+                if power == MXL_POWER:
+                    power = mxl_power
+                result[var] = result.get(var, 0) + power
+
+        result = Poly({tuple(result.items()): 1})
+        return result
+
     def __div__(self, p):
         q, r = self.div_mod(p)
         return q
@@ -625,23 +677,41 @@ def run_goal(rules, goal, modulo=0):
     p0 = poly_from_constant(0, modulo=modulo)
     while True:
         for rule in rules:
-            q, r = goal.div_mod(rule.head)
-            if r == p0:
+            if OPTIONS['allow_maximal_powers']:
+                goal1 = goal.rewrite_maximal(rule.head, rule.clause)
 
-                if OPTIONS['verbose']:
-                    print 40 * '-'
-                    print 'Current goal : %s' % (goal,)
-                    print 'Applying rule: %s' % (rule,)
-                    print 'Factorization: %s = (%s) * (%s)' % (goal, rule.head, q)
+                if goal1 is not None:
 
-                goal = q
-                for p in rule.clause:
-                    goal = goal * p
+                    if OPTIONS['verbose']:
+                        print 40 * '-'
+                        print 'Current goal : %s' % (goal,)
+                        print 'Applying rule: %s' % (rule,)
 
-                if OPTIONS['verbose']:
-                    print 'New goal     : %s' % (goal,)
+                    goal = goal1
 
-                break
+                    if OPTIONS['verbose']:
+                        print 'New goal     : %s' % (goal,)
+
+                    break
+            else:
+                q, r = goal.div_mod(rule.head)
+
+                if r == p0:
+
+                    if OPTIONS['verbose']:
+                        print 40 * '-'
+                        print 'Current goal : %s' % (goal,)
+                        print 'Applying rule: %s' % (rule,)
+                        print 'Factorization: %s = (%s) * (%s)' % (goal, rule.head, q)
+
+                    goal = q
+                    for p in rule.clause:
+                        goal = goal * p
+
+                    if OPTIONS['verbose']:
+                        print 'New goal     : %s' % (goal,)
+
+                    break
         else:
             if OPTIONS['verbose']:
                 print 40 * '-'
@@ -677,7 +747,7 @@ def parse_program(string, filename='...', modulo=0):
     return Program(rules)
 
 def load_program(string, filename='...', modulo=0):
-    program = parse_program(string, filename='...', modulo=modulo)
+    program = parse_program(string, filename=filename, modulo=modulo)
     rules = []
     for p in program.rules:
         if p.is_goal():
