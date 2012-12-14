@@ -9,9 +9,10 @@ Cratylus
 Introduction
 ------------
 
-Cratylus is a polynomial rewriting esolang.
+Cratylus is a polynomial rewriting esolang, designed
+for submission to [December 2012 PLT Games](http://www.pltgames.com/competition/2012/12).
 
-A Cratylus program is a sequence of rewriting rules between multivariate polynomials.
+A Cratylus program is a sequence of rewrite rules between multivariate polynomials.
 For instance, the following program has only one rule:
 
     xy => z.
@@ -71,7 +72,9 @@ If one could represent those facts for arbitrary powers of 10,
 the program would effectively perform additions in a linear
 number of steps. Unfortunately, Cratylus is not expressive enough
 for us to be able to state that equations in general, but only
-up to a given fixed number.
+up to a given fixed number (NB: below we describe Cratylus^@,
+a variant that allows expressing precisely that kind of rewrite
+rules).
 For example, one could write a version of factorial improved to work
 "fast" up to 64-bit integers. See
 [the code](https://github.com/foones/cratylus/blob/master/examples/fast_factorial.compact.cr).
@@ -187,7 +190,7 @@ following:
     f <==> x - 3
     ...
 
-See, for example, that the first rewriting rule of the first
+See, for example, that the first rewrite rule of the first
 factorial program was `H => m Z`, which in the new program
 can be read as `x - 17 => (x + 7) x`, i.e.
 `x - 17 => x^2 + 7x`.
@@ -287,7 +290,7 @@ Notice there are two ways of writing products:
 Using Cratylus as a basic polynomial normalizer
 -----------------------------------------------
 
-Invoke Cratylus with an empty program (no rewriting rules):
+Invoke Cratylus with an empty program (no rewrite rules):
 
     $ python cratylus.py empty_file
 
@@ -424,7 +427,7 @@ of doing things "scales", in the sense that allows us to carry
 out other, more complex, processes.
 
 As in FRACTRAN, each variable can be thought as a register, and
-rewriting rules can be thought as simple incrementing / decrementing
+rewrite rules can be thought as simple incrementing / decrementing
 operations on exponents.
 
 Example 2: erasing a variable
@@ -709,8 +712,7 @@ Cratylus simplifier
 Also part of the Cratylus distribution is the script `simp_cr.py` which
 normalizes Cratylus programs.
 
-Notice that most of the Cratylus programs above, including all the possible
-outputs of `s2cr.py`, are written in *monomial form*.
+Notice that most of the Cratylus programs above, are written in *monomial form*.
 That is, all the polynomials that appear in the source program are monomials
 with leading coefficient equal to 1.
 
