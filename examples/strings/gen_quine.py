@@ -1,12 +1,31 @@
 #!/usr/bin/python
 
-BASE = 123
+NUM_BASE = 10
+STR_BASE = 100
+
+TRAN = {
+chr(10): 99,
+'G': 98,
+'Q': 97,
+'e': 96,
+'o': 95,
+'y': 94,
+'=': 93,
+'3': 92,
+}
 
 def cstring(x):
     power = 0
     r = 0
     for c in x:
-        r = r + ord(c) * (BASE ** power)
+        if c in TRAN:
+            oc = TRAN[c]
+        else:
+            oc = ord(c) - 31
+        assert 0 <= oc < 100
+        assert oc % 10 != 0
+        assert oc / 10 != 0
+        r = r + oc * (STR_BASE ** power)
         power += 1
     return r
 
@@ -38,16 +57,16 @@ enable = True
 if enable:
     rad = 'In=>Ina.'  #### XXX: enable for real quine
 else:
-    rad = 'In X^@.' #### XXX: disable for real quine
+    rad = 'InX^@.' #### XXX: disable for real quine
 
 ## Print number
 lastname = ''
 for name, power in [('a', 512), ('b', 256), ('c', 128), ('d', 64), ('e', 32)]:
-    rad += 'In%sX^@=>Mn%sDivmod X^@ Y^%u.' % (name, name, 10 ** power)
+    rad += 'In%sX^@=>Mn%sDivmodX^@Y^%u.' % (name, name, NUM_BASE ** power)
     if lastname == '':
         rad += 'In%s.' % (name,)
     else:
-        rad += 'In%s => Ln%s.' % (name, lastname)
+        rad += 'In%s=>Ln%s.' % (name, lastname)
     rad += 'Mn%sC^@=>Mn%sX%s^@.' % (name, name, name,)
     rad += 'Mn%sR^@=>In%sX^@.' % (name, chr(ord(name) + 1),)
     rad += 'Ln%sX%s^@=>In%sX^@.' % (name, name, name)
@@ -55,7 +74,7 @@ for name, power in [('a', 512), ('b', 256), ('c', 128), ('d', 64), ('e', 32)]:
     rad += '\n'
     lastname = name
 name = chr(ord(lastname) + 1)
-rad += 'In%sX^@=>DivmodX^@Y^10Jn.' % (name,)
+rad += 'In%sX^@=>DivmodX^@Y^%uJn.' % (name, NUM_BASE)
 rad += 'In%s=>Ln%s.' % (name, lastname)
 rad += 'JnR^@=>KnS^@T^48.'
 rad += 'Jn=>KnT^48.'
@@ -71,11 +90,11 @@ lib += rad
 if enable:
     rad = 'Is=>Isa.'  #### XXX: enable for real quine
 else:
-    rad = 'Is X^@.' #### XXX: disable for real quine
+    rad = 'IsX^@.' #### XXX: disable for real quine
 
 lastname = ''
 for name, power in [('a', 256), ('b', 128), ('c', 64), ('d', 32)]:
-    rad += 'Is%sX^@=>Ms%sDivmod X^@ Y^%u.' % (name, name, BASE ** power)
+    rad += 'Is%sX^@=>Ms%sDivmodX^@Y^%u.' % (name, name, STR_BASE ** power)
     if lastname == '':
         rad += 'Is%s.' % (name,)
     else:
@@ -87,13 +106,15 @@ for name, power in [('a', 256), ('b', 128), ('c', 64), ('d', 32)]:
     rad += '\n'
     lastname = name
 name = chr(ord(lastname) + 1)
-rad += 'Is%sX^@=>DivmodX^@Y^%uJs.' % (name, BASE)
+rad += 'Is%sX^@=>DivmodX^@Y^%uJs.' % (name, STR_BASE)
 rad += 'Is%s=>Ls%s.' % (name, lastname)
-rad += 'JsR^@=>Js>^@.'
-rad += 'JsC^@=>Is%sX^@.' % (name,)
-rad += 'Js=>Is%s.' % (name,)
-
-##lib += '''IsX^@=>DivmodX^@Y^%uJs. Is. JsR^@=>Js>^@. JsC^@=>IsX^@.Js=>Is.''' % (BASE,)
+##rad += 'JsR^@=>Js>^@.'
+for k, v in sorted(TRAN.items(), key=lambda (k, v): -v):
+    rad += '\nJsR^%u=>Ks>^%u.' % (v, ord(k))
+rad += '\nJs=>KsR^31.'
+rad += 'KsR^@=>Ks>^@.'
+rad += 'KsC^@=>Is%sX^@.' % (name,)
+rad += 'Ks=>Is%s.' % (name,)
 
 lib += rad
 
@@ -125,35 +146,26 @@ for i in range(nchunks):
     ])
     lst = b
 
-def chunkmalo(chunk):
+def badchunk(chunk):
     s = str(cstring(chunk))
     return s[0] == '0' or s[-1] == '0'
 
 lib += '?Q0.'
 
-chunksize = len(lib) / nchunks
-#chunksize = 20
+chunksize = (len(lib) + nchunks - 1) / nchunks
 
 head = ''
 libcopy = lib
 for i in range(nchunks):
     cs = chunksize
-    while chunkmalo(libcopy[:cs]):
+    while badchunk(libcopy[:cs]):
         cs += 1
     chunk = libcopy[:cs]
     libcopy = libcopy[cs:]
     s = cstring(chunk)
-    #s = cstring('hola')
     head += 'Da%u=>X^%s.\n' % (i, s)
     head += 'Dz%u=>X^%s.\n' % (i, ''.join(reversed(str(s))))
+assert libcopy == ''
 
 print head + lib
-
-MIN = 256
-MAX = 0
-for x in head + lib:
-    MIN = min(ord(x), MIN) 
-    MAX = max(ord(x), MAX) 
-print '# MIN', MIN
-print '# MAX', MAX
-print '# CHUNKSIZE', chunksize
+#print '#CHUNKSIZE', chunksize
