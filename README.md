@@ -1197,7 +1197,7 @@ Extension for input/output facilities
 The Cratylus^@ dialect has an extension for performing input/output.
 In a Cratylus^@ program, beyond the usual lowercase, uppercase and
 braced variables, two more variables are allowed:
-`<` (which stands for "input") and `>` (which stands for output).
+`<` (which stands for "input") and `>` (which stands for "output").
 
 For the output feature, whenever a goal contains a factor of the
 form `>^n`, the ASCII character
