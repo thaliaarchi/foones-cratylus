@@ -15,11 +15,11 @@ OPTIONS = {
 class SimpCrException(Exception):
     pass
 
-def translate(filename, translation, contents, initial_table):
+def translate(filename, translation, contents, options):
     if translation == 'normalize':
         return normalize_program(filename, contents)
     else:
-        return translate_program(filename, contents, translation, initial_table)
+        return translate_program(filename, contents, translation, options)
 
 def normalize_program(filename, program):
     return repr(cratylus.parse_program(program, filename, modulo=OPTIONS['source_modulo']))
@@ -129,18 +129,36 @@ def irreducible_elements(n, translation_type):
     else:
         assert False
 
-def translate_monomial(table, monomial, initial_table):
+def translate_monomial(table, monomial, options):
     key, coef = monomial.coefficients().items()[0]
     res = cratylus.poly_from_constant(1, OPTIONS['target_modulo'])
     for var, power in key:
         if var in table:
             res = res * table[var] ** power
         else:
-            assert var in initial_table
-            res = res * initial_table[var] ** power
+            assert var in options['initial_table']
+            res = res * options['initial_table'][var] ** power
     return res
 
-def translate_program(filename, program, translation_type, initial_table):
+def add_suffix(mono, suffix):
+    if suffix is None:  
+        return mono
+
+    coeffs = {}
+    for key, cf in mono.coefficients().items():
+        new_key = []
+        for var, power in key:
+            if var.endswith('}'):
+                new_var = var[:-1] + suffix.lower() + '}'
+            elif len(var) == 1 and var.lower() == var:
+                new_var = var.upper() + suffix.lower()
+            else:
+                new_var = var + '_' + suffix.lower()
+            new_key.append((new_var, power))
+        coeffs[tuple(new_key)] = cf
+    return cratylus.Poly(coeffs)
+
+def translate_program(filename, program, translation_type, options):
     program = cratylus.parse_program(program, filename, modulo=OPTIONS['source_modulo'])
 
     # Collect all polynomials
@@ -161,7 +179,7 @@ def translate_program(filename, program, translation_type, initial_table):
         if coef != 1:
             raise SimpCrException('"%s" is not in monomial form (coeff should be 1)' % (poly,))
         for var, power in key:
-            if var not in initial_table:
+            if var not in options['initial_table']:
                 var_count[var] = var_count.get(var, 0) + 1
 
     # Build translation table
@@ -169,10 +187,11 @@ def translate_program(filename, program, translation_type, initial_table):
     old_vars = sorted(var_count.items(), key=lambda (v, c): -c)
     old_vars = [v for v, c in old_vars]
     new_vars = irreducible_elements(num_vars, translation_type)
+    new_vars = [add_suffix(v, options['suffix']) for v in new_vars]
     table = dict(zip(old_vars, new_vars))
 
     comment = []
-    for old, new in sorted(table.items() + initial_table.items()):
+    for old, new in sorted(table.items() + options['initial_table'].items()):
         msg = '# %s --> %s' % (old, new.repr_compact(OPTIONS['compact'])) 
         comment.append(msg)
 
@@ -180,11 +199,11 @@ def translate_program(filename, program, translation_type, initial_table):
     rules2 = []
     for rule in program.rules:
         if rule.is_goal():
-            r = cratylus.Goal([translate_monomial(table, m, initial_table) for m in rule.clause])
+            r = cratylus.Goal([translate_monomial(table, m, options['initial_table']) for m in rule.clause])
         else:
             r = cratylus.Rule(
-                    translate_monomial(table, rule.head, initial_table),
-                    [translate_monomial(table, m, initial_table) for m in rule.clause])
+                    translate_monomial(table, rule.head, options['initial_table']),
+                    [translate_monomial(table, m, options['initial_table']) for m in rule.clause])
         rules2.append(r)
 
     return '\n'.join(comment) + '\n\n' + cratylus.Program(rules2).repr_compact(OPTIONS['compact'])
@@ -200,6 +219,7 @@ def usage():
     sys.stderr.write('    -u                translate a monomial form program to univariate polynomials\n')
     sys.stderr.write('    -v                translate a monomial form program compacting variable names\n')
     sys.stderr.write('    -b                translate a monomial form program to univariate binary polynomial (i.e. in Z_2)\n')
+    sys.stderr.write('    -s <suffix>       add a suffix to each variable name, useful for linking\n')
     sys.stderr.write('    -t var poly       translate the variable to the given polynomial\n')
     sys.stderr.write('    -nc               do not compact the format of the output\n')
     sys.exit(1)
@@ -208,7 +228,8 @@ if __name__ == '__main__':
 
     args = []
     translation = 'normalize'
-    initial_table = {'<': '<', '>': '>'}
+    initial_table = {}
+    options = {'suffix': None}
     
     outfile = None
     i = 1
@@ -240,6 +261,12 @@ if __name__ == '__main__':
             poly = sys.argv[i + 1]
             i += 2
             initial_table[var] = poly
+        elif sys.argv[i] == '-s':
+            i += 1
+            if i >= len(sys.argv):
+                usage()
+            options['suffix'] = sys.argv[i]
+            i += 1
         elif sys.argv[i] == '-nc':
             OPTIONS['compact'] = False
             i += 1
@@ -256,6 +283,8 @@ if __name__ == '__main__':
 
     if in_file.endswith('.crm'):
         cratylus.OPTIONS['allow_maximal_powers'] = True
+        initial_table['<'] = '<'
+        initial_table['>'] = '>'
 
     for k, v in initial_table.items():
         initial_table[k] = cratylus.poly_from_string(v, modulo=OPTIONS['target_modulo'])
@@ -264,7 +293,8 @@ if __name__ == '__main__':
     contents = f.read()
     f.close()
 
-    result = translate(in_file, translation, contents, initial_table)
+    options['initial_table'] = initial_table
+    result = translate(in_file, translation, contents, options)
 
     print result
     if outfile is not None:
