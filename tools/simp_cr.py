@@ -199,11 +199,11 @@ def translate_program(filename, program, translation_type, options):
     rules2 = []
     for rule in program.rules:
         if rule.is_goal():
-            r = cratylus.Goal([translate_monomial(table, m, options['initial_table']) for m in rule.clause])
+            r = cratylus.Goal([translate_monomial(table, m, options) for m in rule.clause])
         else:
             r = cratylus.Rule(
-                    translate_monomial(table, rule.head, options['initial_table']),
-                    [translate_monomial(table, m, options['initial_table']) for m in rule.clause])
+                    translate_monomial(table, rule.head, options),
+                    [translate_monomial(table, m, options) for m in rule.clause])
         rules2.append(r)
 
     return '\n'.join(comment) + '\n\n' + cratylus.Program(rules2).repr_compact(OPTIONS['compact'])
