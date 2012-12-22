@@ -208,7 +208,7 @@ if __name__ == '__main__':
 
     args = []
     translation = 'normalize'
-    initial_table = {}
+    initial_table = {'<': '<', '>': '>'}
     
     outfile = None
     i = 1
@@ -253,6 +253,9 @@ if __name__ == '__main__':
     in_file = args[0]
     if in_file.endswith('.cr2'):
         cratylus.OPTIONS['source_modulo'] = 2
+
+    if in_file.endswith('.crm'):
+        cratylus.OPTIONS['allow_maximal_powers'] = True
 
     for k, v in initial_table.items():
         initial_table[k] = cratylus.poly_from_string(v, modulo=OPTIONS['target_modulo'])

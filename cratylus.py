@@ -30,6 +30,8 @@ OPTIONS = {
 }
 
 MXL_POWER = '@'
+INPUT_VAR = '<'
+OUTPUT_VAR = '>'
 
 class CratylusException(Exception):
 
@@ -47,7 +49,32 @@ def is_numeric(x):
     for c in x:
         if c not in '0123456789':
             return False
-    return True
+    return len(x) > 0
+
+def is_character_literal(x):
+    return len(x) == 2 and x[0] == "'"
+
+def is_character_code(x):
+    return is_numeric(x) and 0 <= int(x) < 256
+
+def io_input_char():
+    if OPTIONS['script']:
+        user_input = sys.stdin.read(1)
+    else:
+        user_input = raw_input("input (format: either <char-code> or '<char>) ? ")
+        while not is_character_code(user_input) and not is_character_literal(user_input):
+            user_input = raw_input('....................................................? ')
+        if is_character_literal(user_input):
+            user_input = ord(user_input[1])
+        else:
+            user_input = int(user_input)
+    return user_input
+
+def io_output_char(x):
+    sys.stdout.write(chr(x % 256))
+
+def log(msg):
+    sys.stderr.write('%s\n' % (msg,))
 
 def normalize_modulo(x, modulo=0):
     if modulo == 0:
@@ -197,6 +224,25 @@ class Poly(object):
         assert q * d + r == self
         return q, r
 
+    def rewrite_output(self):
+        if not self.is_monomial():
+            raise CratylusException('goal in a Cratylus^@ program should be in monomial form: %s' % (self,))
+
+        goal_key, goal_coef = self._coeffs.items()[0]
+        if goal_coef != 1:
+            raise CratylusException('goal in a Cratylus^@ program should be in monomial form: %s' % (self,))
+
+        goal_key = dict(goal_key)
+        result = {}
+        for var, power in goal_key.items():
+            if power == MXL_POWER:
+                raise CratylusException('goal in a Cratylus^@ program should have no maximal powers: %s' % (self,))
+            if var == OUTPUT_VAR: 
+                io_output_char(power)
+            else:
+                result[var] = power
+        return Poly({tuple(result.items()): 1})
+
     def rewrite_maximal(self, head, rule_clauses):
         if not self.is_monomial():
             raise CratylusException('goal in a Cratylus^@ program should be in monomial form: %s' % (self,))
@@ -215,8 +261,20 @@ class Poly(object):
         goal_key = dict(goal_key)
         head_key = dict(head_key)
 
+        rule_reads_input = False
+
         mxl_power = None
         for var, power in head_key.items():
+
+            if var == OUTPUT_VAR:
+                raise CratylusException('output in a Cratylus^@ program not allowed in rule head: %s' % (head,))
+
+            if var == INPUT_VAR:
+                if power != MXL_POWER:
+                    raise CratylusException('input in a Cratylus^@ program should have maximal power: %s' % (head,))
+                rule_reads_input = True
+                continue
+
             goal_power = goal_key.get(var, 0)
             if power == MXL_POWER:
                 if mxl_power is None or goal_power < mxl_power:
@@ -225,8 +283,18 @@ class Poly(object):
             if goal_power < power:
                 return None
 
+        if rule_reads_input:
+            # Input variable power
+            goal_power = io_input_char()
+            if mxl_power is None or goal_power < mxl_power:
+                mxl_power = goal_power
+
         result = {}
         for var, power in goal_key.items():
+
+            if var == INPUT_VAR:
+                raise CratylusException('input in a Cratylus^@ program not allowed in rule goal: %s' % (self,))
+
             head_power = head_key.get(var, 0)
             if head_power == MXL_POWER:
                 head_power = mxl_power
@@ -246,8 +314,7 @@ class Poly(object):
                     power = mxl_power
                 result[var] = result.get(var, 0) + power
 
-        result = Poly({tuple(result.items()): 1})
-        return result
+        return Poly({tuple(result.items()): 1})
 
     def __div__(self, p):
         q, r = self.div_mod(p)
@@ -468,6 +535,12 @@ def tokenize(s, filename='...', modulo=0):
                 name += s[i]
                 i += 1
             yield Token('VAR', name, Position(filename, s, b, i))
+        elif s[i:i + 1] in [INPUT_VAR, OUTPUT_VAR]:
+            if not OPTIONS['allow_maximal_powers']:
+                raise CratylusException('input/output extension not enabled without maximal powers')
+            name = s[i]
+            yield Token('VAR', name, Position(filename, s, i, i + 1))
+            i += 1
         elif s[i] == '|' and modulo == 2:
             b = i
             coeffs = []
@@ -676,6 +749,8 @@ def run_goal(rules, goal, modulo=0):
         raise CratylusException('goal "%s" cannot have a maximal power' % (goal,))
     p0 = poly_from_constant(0, modulo=modulo)
     while True:
+        if OPTIONS['allow_maximal_powers']:
+            goal = goal.rewrite_output()
         for rule in rules:
             if OPTIONS['allow_maximal_powers']:
                 goal1 = goal.rewrite_maximal(rule.head, rule.clause)
@@ -683,14 +758,14 @@ def run_goal(rules, goal, modulo=0):
                 if goal1 is not None:
 
                     if OPTIONS['verbose']:
-                        print 40 * '-'
-                        print 'Current goal : %s' % (goal,)
-                        print 'Applying rule: %s' % (rule,)
+                        log(40 * '-')
+                        log('Current goal : %s' % (goal,))
+                        log('Applying rule: %s' % (rule,))
 
                     goal = goal1
 
                     if OPTIONS['verbose']:
-                        print 'New goal     : %s' % (goal,)
+                        log('New goal     : %s' % (goal,))
 
                     break
             else:
@@ -699,24 +774,24 @@ def run_goal(rules, goal, modulo=0):
                 if r == p0:
 
                     if OPTIONS['verbose']:
-                        print 40 * '-'
-                        print 'Current goal : %s' % (goal,)
-                        print 'Applying rule: %s' % (rule,)
-                        print 'Factorization: %s = (%s) * (%s)' % (goal, rule.head, q)
+                        log(40 * '-')
+                        log('Current goal : %s' % (goal,))
+                        log('Applying rule: %s' % (rule,))
+                        log('Factorization: %s = (%s) * (%s)' % (goal, rule.head, q))
 
                     goal = q
                     for p in rule.clause:
                         goal = goal * p
 
                     if OPTIONS['verbose']:
-                        print 'New goal     : %s' % (goal,)
+                        log('New goal     : %s' % (goal,))
 
                     break
         else:
             if OPTIONS['verbose']:
-                print 40 * '-'
-                print 'Final result:'
-            print goal
+                log(40 * '-')
+                log('Final result:')
+            sys.stderr.write('%s\n' % (goal,))
             break
 
 def parse_program(string, filename='...', modulo=0):
@@ -806,7 +881,7 @@ def toplevel(rules, modulo=0):
     while True:
         goal_string = raw_input('? ')
         if goal_string in ['bye', 'quit', 'exit']:
-            print 'Bye.'
+            sys.stderr.write('Bye.\n')
             break
         elif goal_string in ['help']:
             cratylus_help()
@@ -815,7 +890,7 @@ def toplevel(rules, modulo=0):
             goal = poly_from_string(goal_string, modulo=modulo)
             run_goal(rules, goal, modulo=modulo)
         except CratylusException, e:
-            print e
+            sys.stderr.write('%s\n' % (e,))
         except KeyboardInterrupt, e:
             pass
 
