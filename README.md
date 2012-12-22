@@ -213,9 +213,7 @@ are provided:
 
 Beyond standard Cratylus, the Cratylus^@ dialect is an improved
 version of Cratylus which allows for more efficient scripts and has
-an extension for performing I/O. A
-[Cratylus^@ quine](https://github.com/foones/cratylus/blob/master/examples/strings/cratylus_quine.crm).
-is included.
+an extension for performing I/O.
 
 Turing completeness
 -------------------
@@ -1377,7 +1375,3 @@ Reversing the input is a bit trickier:
     SQ^@ => RvX^@.
 
     ? Reverse.
-
-Aided by this kind of string manipulation routines, one can write a
-[Cratylus^@ quine](https://github.com/foones/cratylus/blob/master/examples/strings/cratylus_quine.crm).
-For running it, compile with `tools/crc.py` and wait a couple of hours :)

@@ -4,6 +4,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import string
+import random
 
 import cratylus
 
@@ -115,6 +116,24 @@ def gen_compact_vars(n):
         i += 1
     return res
 
+def gen_words(n):
+    fn = os.path.join(os.path.dirname(__file__), 'words.txt')
+    f = file(fn, 'r')
+    ls = f.readlines()
+    f.close()
+    random.shuffle(ls)
+    for i in range(n):
+        yield cratylus.poly_from_var(ls[i].strip(' \t\r\n'), modulo=0)
+
+def gen_mixed(n):
+    cons = [gen_words, gen_compact_vars]
+    gens = [list(g(n)) for g in cons]
+    i = 0
+    while i < n:
+        yield gens[0].pop(0)
+        gens.append(gens.pop(0))
+        i += 1
+
 ########################################
 
 def irreducible_elements(n, translation_type):
@@ -127,6 +146,10 @@ def irreducible_elements(n, translation_type):
         return gen_irreducible_Zk_polys(n, k=2)
     elif translation_type == 'vars_compact':
         return gen_compact_vars(n)
+    elif translation_type == 'words':
+        return gen_words(n)
+    elif translation_type == 'mixed':
+        return gen_mixed(n)
     else:
         assert False
 
@@ -219,6 +242,7 @@ def usage():
     sys.stderr.write('    -o <outfile.cr>   write the results in <outfile>\n')
     sys.stderr.write('    -f                translate a monomial form program to FRACTRAN\n')
     sys.stderr.write('    -u                translate a monomial form program to univariate polynomials\n')
+    sys.stderr.write('    -w                translate a monomial form program using words\n')
     sys.stderr.write('    -v                translate a monomial form program compacting variable names\n')
     sys.stderr.write('    -b                translate a monomial form program to univariate binary polynomial (i.e. in Z_2)\n')
     sys.stderr.write('    -p <prefix>       add a prefix to each variable name, useful for linking\n')
@@ -244,6 +268,12 @@ if __name__ == '__main__':
             i += 1
         elif sys.argv[i] == '-v':
             translation = 'vars_compact'
+            i += 1
+        elif sys.argv[i] == '-w':
+            translation = 'words'
+            i += 1
+        elif sys.argv[i] == '--mixed':
+            translation = 'mixed'
             i += 1
         elif sys.argv[i] == '-b':
             translation = 'binary'
