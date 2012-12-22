@@ -59,11 +59,13 @@ def is_character_code(x):
 
 def io_input_char():
     if OPTIONS['script']:
-        user_input = sys.stdin.read(1)
+        user_input = ord(sys.stdin.read(1))
     else:
-        user_input = raw_input("input (format: either <char-code> or '<char>) ? ")
+        prompt = "input (format: either <char-code> or '<char>) ? "
+        user_input = raw_input(prompt)
         while not is_character_code(user_input) and not is_character_literal(user_input):
-            user_input = raw_input('....................................................? ')
+            sys.stderr.write("!!! wrong input: format should be either <char-code> or '<char>\n")
+            user_input = raw_input(prompt)
         if is_character_literal(user_input):
             user_input = ord(user_input[1])
         else:

@@ -34,4 +34,4 @@ END
 fact X Res
 xzero X
 
-! X 100
+! X 10
