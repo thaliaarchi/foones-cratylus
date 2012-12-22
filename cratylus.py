@@ -55,11 +55,16 @@ def is_character_literal(x):
     return len(x) == 2 and x[0] == "'"
 
 def is_character_code(x):
-    return is_numeric(x) and 0 <= int(x) < 256
+    # Allow 256 for representing EOF
+    return is_numeric(x) and 0 <= int(x) <= 256
 
 def io_input_char():
     if OPTIONS['script']:
-        user_input = ord(sys.stdin.read(1))
+        rd = sys.stdin.read(1)
+        if len(rd) == 0:
+            user_input = 256
+        else:
+            user_input = ord(rd)
     else:
         prompt = "input (format: either <char-code> or '<char>) ? "
         user_input = raw_input(prompt)
@@ -74,6 +79,7 @@ def io_input_char():
 
 def io_output_char(x):
     sys.stdout.write(chr(x % 256))
+    sys.stdout.flush()
 
 def log(msg):
     sys.stderr.write('%s\n' % (msg,))
