@@ -1,6 +1,7 @@
 #!/usr/bin/python
+import os
 import sys
-sys.path.append('../')
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import string
 
@@ -140,20 +141,21 @@ def translate_monomial(table, monomial, options):
             res = res * options['initial_table'][var] ** power
     return res
 
-def add_suffix(mono, suffix):
-    if suffix is None:  
+def add_prefix(mono, prefix):
+    if prefix is None:  
         return mono
+    prefix = prefix[0].upper() + prefix[1:]
 
     coeffs = {}
     for key, cf in mono.coefficients().items():
         new_key = []
         for var, power in key:
-            if var.endswith('}'):
-                new_var = var[:-1] + suffix.lower() + '}'
+            if var.startswith('{') and var.endswith('}'):
+                new_var = '{' + prefix + '_' + var[1:]
             elif len(var) == 1 and var.lower() == var:
-                new_var = var.upper() + suffix.lower()
+                new_var = prefix + '_' + var.lower()
             else:
-                new_var = var + '_' + suffix.lower()
+                new_var = prefix + '__' + var.lower()
             new_key.append((new_var, power))
         coeffs[tuple(new_key)] = cf
     return cratylus.Poly(coeffs)
@@ -187,7 +189,7 @@ def translate_program(filename, program, translation_type, options):
     old_vars = sorted(var_count.items(), key=lambda (v, c): -c)
     old_vars = [v for v, c in old_vars]
     new_vars = irreducible_elements(num_vars, translation_type)
-    new_vars = [add_suffix(v, options['suffix']) for v in new_vars]
+    new_vars = [add_prefix(v, options['prefix']) for v in new_vars]
     table = dict(zip(old_vars, new_vars))
 
     comment = []
@@ -219,7 +221,7 @@ def usage():
     sys.stderr.write('    -u                translate a monomial form program to univariate polynomials\n')
     sys.stderr.write('    -v                translate a monomial form program compacting variable names\n')
     sys.stderr.write('    -b                translate a monomial form program to univariate binary polynomial (i.e. in Z_2)\n')
-    sys.stderr.write('    -s <suffix>       add a suffix to each variable name, useful for linking\n')
+    sys.stderr.write('    -p <prefix>       add a prefix to each variable name, useful for linking\n')
     sys.stderr.write('    -t var poly       translate the variable to the given polynomial\n')
     sys.stderr.write('    -nc               do not compact the format of the output\n')
     sys.exit(1)
@@ -229,7 +231,7 @@ if __name__ == '__main__':
     args = []
     translation = 'normalize'
     initial_table = {}
-    options = {'suffix': None}
+    options = {'prefix': None}
     
     outfile = None
     i = 1
@@ -261,11 +263,11 @@ if __name__ == '__main__':
             poly = sys.argv[i + 1]
             i += 2
             initial_table[var] = poly
-        elif sys.argv[i] == '-s':
+        elif sys.argv[i] == '-p':
             i += 1
             if i >= len(sys.argv):
                 usage()
-            options['suffix'] = sys.argv[i]
+            options['prefix'] = sys.argv[i]
             i += 1
         elif sys.argv[i] == '-nc':
             OPTIONS['compact'] = False
