@@ -62,21 +62,42 @@ def crc_condition(monomial, table, constants_invtable=None):
     key, coef = monomial.coefficients().items()[0]
     cond = []
     for var, power in key:
+        if var == cratylus.OUTPUT_VAR:
+            raise CrcException('rule head should not have output var: %s' % (monomial,))
+        if var == cratylus.INPUT_VAR:
+            # Do not check anything here.
+            continue
         if power == cratylus.MXL_POWER:
             power = 1
         if OPTIONS['gmp']:
             cond.append('mpz_cmp(v[%u], c[%u]) >= 0' % (table[var], constants_invtable[power]))
         else:
             cond.append('v[%u] >= %u' % (table[var], power))
-    return ' && '.join(cond)
+    if cond == []:
+        return '1'
+    else:
+        return ' && '.join(cond)
 
 def crc_inc_dec_maximal(rule, table, indent=''):
     if not rule.head.has_maximal_power():
         return ''
     stmt = []
 
+    # Variables with maximal power at the left-hand side of the rule
     left_vars = rule.head.vars_with_maximal_power()
 
+    if cratylus.INPUT_VAR in left_vars:
+        # Rule reads input
+        stmt.append('int r = fgetc(stdin);\n')
+        stmt.append('if (r == EOF) {\n')
+        stmt.append('\tr = 256;\n')
+        stmt.append('}\n')
+        if OPTIONS['gmp']:
+            stmt.append('mpz_set_ui(v[INVAR], r);\n')
+        else:
+            stmt.append('v[INVAR] = r;\n')
+
+    # Variables with maximal power at the right-hand side of the rule
     right_vars = {}
     for m in rule.clause:
         for v in m.vars_with_maximal_power():
@@ -141,6 +162,8 @@ def crc(program):
         if coef != 1:
             raise CrcException('"%s" is not in monomial form (coeff should be 1)' % (poly,))
         for var, power in key:
+            if var == cratylus.INPUT_VAR and power != cratylus.MXL_POWER:
+                raise CrcException('input variable should have maximal power: %s' % (poly,))
             var_count[var] = var_count.get(var, 0) + 1
 
     # Build translation table
@@ -174,7 +197,7 @@ def crc(program):
         
         num_constants = len(constants)
         prog.append('#define CONSTANTS %u\n' % (num_constants,))
-        prog.append('mpz_t c[CONSTANTS];\n')
+        prog.append('mpz_t c[CONSTANTS];\n\n')
         constants = sorted(constants.keys())
 
         constants_invtable = {}
@@ -189,6 +212,13 @@ def crc(program):
     else:
         prog.append('unsigned long int v[VARS];\n')
     prog.append('\n')
+
+    if cratylus.INPUT_VAR in table:
+        prog.append('#define INVAR %u\n' % (table[cratylus.INPUT_VAR],))
+    if cratylus.OUTPUT_VAR in table:
+        prog.append('#define OUTVAR %u\n' % (table[cratylus.OUTPUT_VAR],))
+    prog.append('\n')
+
     prog.append('char *n[] = {\n')
     for varname in reverse_table:
         prog.append('\t"%s",\n' % (varname,))
@@ -234,6 +264,22 @@ def crc(program):
         prog.append('\n')
 
     prog.append('\twhile (1) {\n')
+    if cratylus.OUTPUT_VAR in table:
+        if OPTIONS['gmp']:
+            prog.append('\t\tif (mpz_cmp_ui(v[OUTVAR], 0) > 0) {\n')
+            prog.append('\t\t\tint r = mpz_get_ui(v[OUTVAR]);\n')
+            prog.append('\t\t\tprintf("%c", (char)r);\n')
+            prog.append('\t\t\tfflush(stdout);\n')
+            prog.append('\t\t\tmpz_set_ui(v[OUTVAR], 0);\n')
+            prog.append('\t\t}\n')
+        else:
+            prog.append('\t\tif (v[OUTVAR] > 0) {\n')
+            prog.append('\t\t\tint r = v[OUTVAR];\n')
+            prog.append('\t\t\tprintf("%c", (char)r);\n')
+            prog.append('\t\t\tfflush(stdout);\n')
+            prog.append('\t\t\tv[OUTVAR] = 0;\n')
+            prog.append('\t\t}\n')
+
     prog.append('\t\tif (0) {\n')
     for rule in program.rules:
         if rule.is_goal(): continue
