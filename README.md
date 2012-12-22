@@ -213,7 +213,9 @@ are provided:
 
 Beyond standard Cratylus, the Cratylus^@ dialect is an improved
 version of Cratylus which allows for more efficient scripts and has
-an extension for performing I/O.
+an extension for performing I/O. A
+[Cratylus^@ quine](https://github.com/foones/cratylus/blob/master/examples/strings/cratylus_quine.crm).
+is included.
 
 Turing completeness
 -------------------
@@ -1283,3 +1285,6 @@ by `X^066065`.
     # Output an encoded string
     ? I X^33100108114111119032111108108101072. # Hello world!
 
+Aided by this output routines, one can write a
+[Cratylus^@ quine](https://github.com/foones/cratylus/blob/master/examples/strings/cratylus_quine.crm).
+For running it, compile with `tools/crc.py` and wait a couple of hours :)
