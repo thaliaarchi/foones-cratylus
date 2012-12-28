@@ -1155,7 +1155,7 @@ Rewrites `x^42` in one step to `y^42`.
 That allows us to write an efficient addition routine:
 
     Add X^@ => Z^@.
-    Add Y^@ => Y^@.
+    Add Y^@ => Z^@.
     Add.
 
 Note that if there is more than one occurrence of `@` at the
