@@ -295,9 +295,9 @@ Notice there are two ways of writing products:
 Using Cratylus as a basic polynomial normalizer
 -----------------------------------------------
 
-Invoke Cratylus with an empty program (no rewrite rules):
+Invoke Cratylus with no arguments (no rewrite rules):
 
-    $ python cratylus.py empty_file
+    $ python cratylus.py
 
       ____           _         _           
      / ___|_ __ __ _| |_ _   _| |_   _ ___ 
