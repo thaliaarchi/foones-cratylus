@@ -1211,7 +1211,22 @@ a single character is read from standard input, and its character
 code is bound to the maximal power. On EOF, the value `256` is
 read.
 
-To begin, a very simple program that outputs `Hello world!` followed
+The simplest output program:
+
+    a => >^64.
+    ? a.
+
+Prints an `@` (ASCII code 64) when run.
+
+The simplest input program:
+
+    a<^@ => b^@.
+    ? a.
+
+Reads a character from standard input and stores its ASCII code as a power
+of `b`.
+
+A very simple program that outputs `Hello world!` followed
 by a newline:
 
     a => >^10n.
